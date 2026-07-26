@@ -1,0 +1,197 @@
+import { Injectable, Logger } from '@nestjs/common';
+import { Cron, CronExpression } from '@nestjs/schedule';
+import { Prisma } from '@prisma/client';
+import { PrismaService } from '../prisma/prisma.service';
+import { PluggyService, PluggyAccount } from '../pluggy/pluggy.service';
+import {
+  PluggyAccountFull,
+  PluggyItem,
+  PluggyTransaction,
+} from '../pluggy/pluggy.types';
+
+/** Quantas transacoes processar por lote (evita $transaction gigante). */
+const TX_CHUNK = 100;
+
+export interface AccountSyncResult {
+  accountId: string;
+  name?: string;
+  transactionsSynced: number;
+}
+
+export interface ItemSyncResult {
+  itemId: string;
+  connector: string;
+  status: string;
+  accounts: AccountSyncResult[];
+  totalTransactions: number;
+}
+
+@Injectable()
+export class SyncService {
+  private readonly logger = new Logger(SyncService.name);
+
+  constructor(
+    private readonly pluggy: PluggyService,
+    private readonly prisma: PrismaService,
+  ) {}
+
+  /** Sincroniza um Item: dados do item, contas e todas as transacoes. */
+  async syncItem(
+    itemId: string,
+    from?: string,
+    to?: string,
+  ): Promise<ItemSyncResult> {
+    this.logger.log(`Iniciando sync do item ${itemId}`);
+
+    const item = await this.pluggy.getItem(itemId);
+    await this.upsertItem(item);
+
+    const accountsResp = await this.pluggy.getAccounts(itemId);
+    const accounts = (accountsResp.results ?? []) as PluggyAccount[];
+
+    const accountResults: AccountSyncResult[] = [];
+    for (const acc of accounts) {
+      const account = acc as unknown as PluggyAccountFull;
+      await this.upsertAccount(itemId, account);
+
+      const txs = await this.pluggy.getAllTransactionsByAccount(
+        account.id,
+        from,
+        to,
+      );
+      await this.upsertTransactions(account.id, txs);
+
+      accountResults.push({
+        accountId: account.id,
+        name: account.name,
+        transactionsSynced: txs.length,
+      });
+      this.logger.log(
+        `Conta ${account.id} (${account.name ?? '-'}): ${txs.length} transacoes`,
+      );
+    }
+
+    const totalTransactions = accountResults.reduce(
+      (sum, a) => sum + a.transactionsSynced,
+      0,
+    );
+    this.logger.log(
+      `Sync do item ${itemId} concluido: ${accounts.length} contas, ${totalTransactions} transacoes.`,
+    );
+
+    return {
+      itemId,
+      connector: item.connector?.name ?? 'desconhecido',
+      status: item.status,
+      accounts: accountResults,
+      totalTransactions,
+    };
+  }
+
+  /**
+   * Re-sincroniza todos os Items que JA conhecemos (estao no nosso Postgres).
+   * A Pluggy nao tem "listar items"; o primeiro item de cada conexao precisa
+   * ser semeado uma vez via syncItem(itemId) com um id conhecido.
+   */
+  async syncAll(from?: string, to?: string): Promise<ItemSyncResult[]> {
+    const known = await this.prisma.item.findMany({ select: { id: true } });
+    this.logger.log(
+      `Sync geral: ${known.length} item(ns) conhecido(s) no banco.`,
+    );
+
+    const results: ItemSyncResult[] = [];
+    for (const it of known) {
+      try {
+        results.push(await this.syncItem(it.id, from, to));
+      } catch (err) {
+        this.logger.error(
+          `Falha ao sincronizar item ${it.id}: ${(err as Error).message}`,
+        );
+      }
+    }
+    return results;
+  }
+
+  /** Sync automatico: roda syncAll() a cada 3 horas. */
+  @Cron(CronExpression.EVERY_3_HOURS)
+  async autoSyncAll(): Promise<void> {
+    this.logger.log('Sync automatico (a cada 3h) iniciado.');
+    await this.syncAll();
+    this.logger.log('Sync automatico (a cada 3h) concluido.');
+  }
+
+  // ---------------------------------------------------------------------------
+  // Upserts
+  // ---------------------------------------------------------------------------
+
+  private async upsertItem(item: PluggyItem): Promise<void> {
+    const data = {
+      connectorId: item.connector?.id ?? 0,
+      connectorName: item.connector?.name ?? 'desconhecido',
+      status: item.status,
+      executionStatus: item.executionStatus ?? null,
+      pluggyCreatedAt: item.createdAt ? new Date(item.createdAt) : null,
+      pluggyUpdatedAt: item.updatedAt ? new Date(item.updatedAt) : null,
+      lastSyncedAt: new Date(),
+    };
+    await this.prisma.item.upsert({
+      where: { id: item.id },
+      create: { id: item.id, ...data },
+      update: data,
+    });
+  }
+
+  private async upsertAccount(
+    itemId: string,
+    acc: PluggyAccountFull,
+  ): Promise<void> {
+    const data = {
+      itemId,
+      type: acc.type ?? null,
+      subtype: acc.subtype ?? null,
+      name: acc.name ?? null,
+      marketingName: acc.marketingName ?? null,
+      number: acc.number ?? null,
+      balance:
+        acc.balance != null ? new Prisma.Decimal(acc.balance) : null,
+      currencyCode: acc.currencyCode ?? null,
+    };
+    await this.prisma.account.upsert({
+      where: { id: acc.id },
+      create: { id: acc.id, ...data },
+      update: data,
+    });
+  }
+
+  private async upsertTransactions(
+    accountId: string,
+    txs: PluggyTransaction[],
+  ): Promise<void> {
+    for (let i = 0; i < txs.length; i += TX_CHUNK) {
+      const chunk = txs.slice(i, i + TX_CHUNK);
+      await this.prisma.$transaction(
+        chunk.map((t) => {
+          const data = {
+            accountId,
+            date: new Date(t.date),
+            description: t.description ?? null,
+            descriptionRaw: t.descriptionRaw ?? null,
+            amount: new Prisma.Decimal(t.amount),
+            balance: t.balance != null ? new Prisma.Decimal(t.balance) : null,
+            currencyCode: t.currencyCode ?? null,
+            type: t.type ?? null,
+            category: t.category ?? null,
+            categoryId: t.categoryId ?? null,
+            providerCode: t.providerCode ?? null,
+            status: t.status ?? null,
+          };
+          return this.prisma.transaction.upsert({
+            where: { id: t.id },
+            create: { id: t.id, ...data },
+            update: data,
+          });
+        }),
+      );
+    }
+  }
+}

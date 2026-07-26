@@ -1,0 +1,101 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// Uma conexao bancaria na Pluggy (resultado do Open Finance / widget).
+model Item {
+  id              String    @id // id do Item na Pluggy (uuid)
+  connectorId     Int
+  connectorName   String
+  status          String
+  executionStatus String?
+  pluggyCreatedAt DateTime?
+  pluggyUpdatedAt DateTime?
+  lastSyncedAt    DateTime  @default(now())
+
+  accounts  Account[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+/// Uma conta (corrente, poupanca, cartao) pertencente a um Item.
+model Account {
+  id            String   @id // id da Account na Pluggy
+  itemId        String
+  item          Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  type          String? // BANK | CREDIT
+  subtype       String?
+  name          String?
+  marketingName String?
+  number        String?
+  balance       Decimal? @db.Decimal(18, 2)
+  currencyCode  String?
+
+  transactions Transaction[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@index([itemId])
+}
+
+/// Limite de gastos planejado por mes. category = "_global" e o limite geral.
+model Budget {
+  category  String   @id
+  amount    Decimal  @db.Decimal(18, 2)
+  updatedAt DateTime @updatedAt
+}
+
+/// Meta financeira (objetivo de poupanca) com aportes mensais.
+model Goal {
+  id                  String      @id @default(cuid())
+  name                String
+  icon                String      @default("🎯")
+  targetAmount        Decimal     @db.Decimal(18, 2)
+  initialAmount       Decimal     @default(0) @db.Decimal(18, 2)
+  monthlyContribution Decimal?    @db.Decimal(18, 2)
+  deadline            DateTime?
+  status              String      @default("ACTIVE") // ACTIVE | READY | DONE
+  entries             GoalEntry[]
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+}
+
+/// Aporte em uma meta, agregado por mes (YYYY-MM).
+model GoalEntry {
+  id        String   @id @default(cuid())
+  goalId    String
+  goal      Goal     @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  month     String
+  amount    Decimal  @db.Decimal(18, 2)
+  createdAt DateTime @default(now())
+
+  @@unique([goalId, month])
+}
+
+/// Uma transacao pertencente a uma Account.
+model Transaction {
+  id             String   @id // id da Transaction na Pluggy
+  accountId      String
+  account        Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  date           DateTime
+  description    String?
+  descriptionRaw String?
+  amount         Decimal  @db.Decimal(18, 2)
+  balance        Decimal? @db.Decimal(18, 2)
+  currencyCode   String?
+  type           String? // DEBIT | CREDIT
+  category       String?
+  categoryId     String?
+  providerCode   String?
+  status         String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([accountId, date])
+}

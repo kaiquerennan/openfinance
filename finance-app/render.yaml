@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: finance-app
+    runtime: node
+    plan: free
+    rootDir: finance-app
+    buildCommand: npm install && npx prisma generate && npx prisma migrate deploy && npm run build
+    startCommand: npm run start:prod
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: PLUGGY_CLIENT_ID
+        sync: false
+      - key: PLUGGY_CLIENT_SECRET
+        sync: false
+      - key: PLUGGY_BASE_URL
+        value: https://api.pluggy.ai
+      - key: PLUGGY_CLIENT_USER_ID
+        value: me
+      - key: PLUGGY_WEBHOOK_SECRET
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false

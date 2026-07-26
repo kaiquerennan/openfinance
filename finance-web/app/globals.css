@@ -1,0 +1,208 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: var(--font-poppins), ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+
+  /* Superfícies (light, estilo app mobile) */
+  --color-base: #f2f3f5;
+  --color-card: #ffffff;
+  --color-soft: #eef0f3;
+  --color-edge: #e6e8ec;
+
+  /* Texto */
+  --color-ink: #16181d;
+  --color-ink-dim: #7a8089;
+  --color-ink-faint: #a8adb8;
+
+  /* Azul da marca (header e nav) */
+  --color-azure-300: #7db2ff;
+  --color-azure-400: #3f8bfa;
+  --color-azure-500: #1e74f0;
+  --color-azure-600: #0a55d5;
+  --color-azure-700: #0846ac;
+  --color-navy: #0b2b66;
+
+  /* Acentos */
+  --color-accent: #4e77f6; /* ícone ativo da nav / pill de período */
+  --color-pos: #22c55e;
+  --color-neg: #ef4444;
+  --color-line: #ff4d67; /* linha de gasto no header */
+  --color-amber: #f0a818;
+  --color-amber-soft: #f7e2ae;
+}
+
+html {
+  scroll-behavior: smooth;
+  color-scheme: light;
+}
+
+body {
+  background: #e9eaee;
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior-y: none;
+}
+
+/* Coluna do app (mobile-first; centrada no desktop) */
+.app-col {
+  background: var(--color-base);
+  min-height: 100dvh;
+}
+@media (min-width: 512px) {
+  .app-col {
+    box-shadow: 0 0 60px -20px rgba(10, 40, 90, 0.35);
+  }
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #cfd3da transparent;
+}
+
+/* Header azul degradê com base arredondada */
+.blue-hero {
+  background: linear-gradient(180deg, #2b80f6 0%, #1266e2 55%, #0a55d5 100%);
+  border-bottom-left-radius: 2.25rem;
+  border-bottom-right-radius: 2.25rem;
+}
+
+/* Botões translúcidos do header */
+.hero-btn {
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  color: #fff;
+  backdrop-filter: blur(6px);
+}
+
+/* Cartão padrão */
+.card {
+  background: var(--color-card);
+  border-radius: 1.75rem;
+}
+
+/* Chip de categoria */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  border-radius: 999px;
+  padding: 0.2rem 0.6rem;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  max-width: 9.5rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Tabs segmentadas sobre o azul */
+.seg {
+  background: rgba(9, 45, 120, 0.35);
+  border-radius: 999px;
+  padding: 0.3rem;
+}
+.seg button {
+  border-radius: 999px;
+  padding: 0.55rem 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  flex: 1;
+  transition: all 0.2s ease;
+}
+.seg button[data-active="true"] {
+  background: #fff;
+  color: #10275a;
+  box-shadow: 0 6px 18px -6px rgba(4, 24, 68, 0.5);
+}
+
+/* Tabs segmentadas sobre fundo claro */
+.seg-light {
+  background: #e8eaee;
+  border-radius: 999px;
+  padding: 0.3rem;
+}
+.seg-light button {
+  border-radius: 999px;
+  padding: 0.5rem 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-ink-dim);
+  flex: 1;
+  transition: all 0.2s ease;
+}
+.seg-light button[data-active="true"] {
+  background: #fff;
+  color: var(--color-ink);
+  box-shadow: 0 4px 14px -6px rgba(20, 30, 60, 0.35);
+}
+
+/* Animações */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.rise {
+  animation: rise 0.35s ease both;
+}
+
+@keyframes sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+.sheet-up {
+  animation: sheet-up 0.28s cubic-bezier(0.32, 0.72, 0.2, 1) both;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.fade-in {
+  animation: fade-in 0.2s ease both;
+}
+
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+.pop {
+  animation: pop 0.22s ease both;
+}
+
+::selection {
+  background: rgba(30, 116, 240, 0.25);
+}
+
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+}
