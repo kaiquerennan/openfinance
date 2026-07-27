@@ -28,7 +28,8 @@ export default function ConnectBankButton({
             {loading ? "Abrindo…" : "Conectar novo banco"}
           </div>
           <div className="text-sm text-ink-dim">
-            {error ?? "Open Finance via Pluggy — sincroniza automaticamente"}
+            {error ??
+              "Entre com sua conta MeuPluggy e selecione lá o banco (Nubank, XP, BB...)"}
           </div>
         </div>
       </button>

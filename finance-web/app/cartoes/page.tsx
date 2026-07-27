@@ -55,7 +55,7 @@ export default function CartoesPage() {
         ) : accounts.length === 0 ? (
           <EmptyState text="Nenhum cartão de crédito conectado ainda." />
         ) : (
-          <div className="rise space-y-4">
+          <div className="rise space-y-4 lg:space-y-0 lg:grid lg:grid-cols-2 lg:gap-5 lg:items-start">
             {accounts.map((a) => (
               <Card key={a.id}>
                 {/* Cartão visual */}

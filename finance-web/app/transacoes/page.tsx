@@ -308,7 +308,7 @@ function TransacoesInner() {
                 <span className="w-24 text-right">Gasto</span>
                 <span className="w-28 text-right">Limite</span>
               </div>
-              <div className="space-y-5 px-2">
+              <div className="space-y-5 px-2 lg:columns-2 lg:gap-x-10 lg:space-y-0">
                 {(showAll ? byCategory : byCategory.slice(0, 4)).map((c) => {
                   const meta = catMeta(c.category);
                   const color = catColor(c.category);
@@ -318,7 +318,7 @@ function TransacoesInner() {
                     <button
                       key={c.category}
                       onClick={() => setLimitCat(c.category)}
-                      className="w-full flex items-center gap-2"
+                      className="w-full flex items-center gap-2 lg:break-inside-avoid lg:mb-5"
                     >
                       <span
                         className="w-0 h-0 border-y-[7px] border-y-transparent border-l-[11px] shrink-0"
@@ -408,30 +408,34 @@ function TransacoesInner() {
             <LoadingCard text="Detectando contas fixas…" />
           ) : (
             <div className="rise space-y-5">
-              <SegBars
-                data={recChart}
-                series={[
-                  { key: "parcelados", label: "Parcelados", color: "#f0a818" },
-                  { key: "recorrentes", label: "Recorrentes", color: "#4e77f6" },
-                ]}
-                height={230}
-              />
-              <div className="grid grid-cols-2 gap-2 px-2">
-                <div className="flex gap-2.5">
-                  <span className="w-1 rounded-full bg-amber" />
-                  <div>
-                    <div className="text-sm text-ink-dim">Parcelados</div>
-                    <Money
-                      value={selParc.reduce((s, i) => s + i.amount, 0)}
-                      className="text-lg"
-                    />
-                  </div>
+              <div className="lg:grid lg:grid-cols-3 lg:gap-6 lg:items-start space-y-5 lg:space-y-0">
+                <div className="lg:col-span-2">
+                  <SegBars
+                    data={recChart}
+                    series={[
+                      { key: "parcelados", label: "Parcelados", color: "#f0a818" },
+                      { key: "recorrentes", label: "Recorrentes", color: "#4e77f6" },
+                    ]}
+                    height={230}
+                  />
                 </div>
-                <div className="flex gap-2.5">
-                  <span className="w-1 rounded-full bg-accent" />
-                  <div>
-                    <div className="text-sm text-ink-dim">Recorrentes</div>
-                    <Money value={recurringMonthly} className="text-lg" />
+                <div className="grid grid-cols-2 gap-2 px-2 lg:col-span-1 lg:flex lg:flex-col lg:gap-4">
+                  <div className="flex gap-2.5">
+                    <span className="w-1 rounded-full bg-amber" />
+                    <div>
+                      <div className="text-sm text-ink-dim">Parcelados</div>
+                      <Money
+                        value={selParc.reduce((s, i) => s + i.amount, 0)}
+                        className="text-lg"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex gap-2.5">
+                    <span className="w-1 rounded-full bg-accent" />
+                    <div>
+                      <div className="text-sm text-ink-dim">Recorrentes</div>
+                      <Money value={recurringMonthly} className="text-lg" />
+                    </div>
                   </div>
                 </div>
               </div>
@@ -446,7 +450,7 @@ function TransacoesInner() {
                 onChange={(k) => setSubTab(k as typeof subTab)}
               />
 
-              <div className="space-y-4 px-1">
+              <div className="space-y-4 px-1 lg:columns-2 lg:gap-x-10 lg:space-y-0">
                 {subTab === "recorrentes" &&
                   (recurringItems.length === 0 ? (
                     <p className="text-sm text-ink-faint text-center py-6">
@@ -454,7 +458,10 @@ function TransacoesInner() {
                     </p>
                   ) : (
                     recurringItems.map((s) => (
-                      <div key={s.description} className="flex items-center gap-3.5">
+                      <div
+                        key={s.description}
+                        className="flex items-center gap-3.5 lg:break-inside-avoid lg:mb-4"
+                      >
                         <span className="h-11 w-11 rounded-2xl bg-soft grid place-items-center text-lg shrink-0">
                           🔁
                         </span>
@@ -478,7 +485,10 @@ function TransacoesInner() {
                     </p>
                   ) : (
                     selParc.map((i) => (
-                      <div key={i.key} className="flex items-center gap-3.5">
+                      <div
+                        key={i.key}
+                        className="flex items-center gap-3.5 lg:break-inside-avoid lg:mb-4"
+                      >
                         <span className="h-11 w-11 rounded-2xl bg-soft grid place-items-center text-lg shrink-0">
                           {catMeta(i.category).icon}
                         </span>

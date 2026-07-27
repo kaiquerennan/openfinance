@@ -29,7 +29,7 @@ import {
   IconWallet,
 } from "@/components/icons";
 
-const MENU = [
+export const MENU = [
   { href: "/", label: "Visão geral", icon: <IconHome size={20} /> },
   { href: "/categorias", label: "Categorias", icon: <IconPie size={20} /> },
   { href: "/transacoes", label: "Transações", icon: <IconArrows size={20} /> },
@@ -174,7 +174,8 @@ export default function BlueHeader({
         <div className="space-y-3">
           <p className="text-sm text-ink-dim">
             Atualize os dados dos bancos conectados via Open Finance ou conecte
-            uma nova instituição.
+            uma nova instituição. Ao conectar, entre com sua conta MeuPluggy
+            (meu.pluggy.ai) e selecione lá o banco real (Nubank, XP, BB...).
           </p>
           <PrimaryButton onClick={syncNow} disabled={syncing}>
             <span className="inline-flex items-center gap-2">

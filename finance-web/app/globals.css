@@ -50,7 +50,7 @@ body {
   background: var(--color-base);
   min-height: 100dvh;
 }
-@media (min-width: 512px) {
+@media (min-width: 512px) and (max-width: 1023px) {
   .app-col {
     box-shadow: 0 0 60px -20px rgba(10, 40, 90, 0.35);
   }

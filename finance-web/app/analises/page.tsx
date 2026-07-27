@@ -159,18 +159,20 @@ function AnalisesInner() {
         {!byMonth ? (
           <LoadingCard text="Montando suas análises…" />
         ) : (
-          <div className="rise space-y-5">
+          <div className="rise space-y-5 lg:space-y-0 lg:grid lg:grid-cols-3 lg:gap-6 lg:items-start">
             {tab === "fluxo" && (
               <>
-                <ValueBars
-                  symmetric
-                  data={stats.map((m) => ({
-                    name: monthTick(m.month),
-                    value: m.income - m.spent,
-                  }))}
-                  height={260}
-                />
-                <div className="space-y-2.5">
+                <div className="lg:col-span-2">
+                  <ValueBars
+                    symmetric
+                    data={stats.map((m) => ({
+                      name: monthTick(m.month),
+                      value: m.income - m.spent,
+                    }))}
+                    height={260}
+                  />
+                </div>
+                <div className="space-y-2.5 lg:col-span-1">
                   <div className="flex items-center justify-between rounded-2xl bg-[#d9f3e1] px-4 py-3.5">
                     <span className="flex items-center gap-2.5 font-semibold text-ink">
                       <span className="h-2.5 w-2.5 rounded-full bg-pos" />
@@ -191,8 +193,10 @@ function AnalisesInner() {
 
             {tab === "gastos" && (
               <>
-                <SegBars data={stackedData} series={stackedSeries} height={260} />
-                <div className="space-y-2.5">
+                <div className="lg:col-span-2">
+                  <SegBars data={stackedData} series={stackedSeries} height={260} />
+                </div>
+                <div className="space-y-2.5 lg:col-span-1">
                   {ranking.map((r) => {
                     const color = catColor(r.category);
                     const meta = catMeta(r.category);
@@ -226,15 +230,17 @@ function AnalisesInner() {
 
             {tab === "receitas" && (
               <>
-                <ValueBars
-                  data={stats.map((m) => ({
-                    name: monthTick(m.month),
-                    value: m.income,
-                  }))}
-                  color="#2ec867"
-                  height={260}
-                />
-                <div className="flex items-center justify-between rounded-2xl bg-[#d9f3e1] px-4 py-3.5">
+                <div className="lg:col-span-2">
+                  <ValueBars
+                    data={stats.map((m) => ({
+                      name: monthTick(m.month),
+                      value: m.income,
+                    }))}
+                    color="#2ec867"
+                    height={260}
+                  />
+                </div>
+                <div className="flex items-center justify-between rounded-2xl bg-[#d9f3e1] px-4 py-3.5 lg:col-span-1 lg:self-start">
                   <span className="flex items-center gap-2.5 font-semibold text-ink">
                     <span className="h-2.5 w-2.5 rounded-full bg-pos" />
                     Receitas
@@ -248,7 +254,7 @@ function AnalisesInner() {
       </div>
 
       {/* Seletor de período flutuante */}
-      <div className="fixed bottom-24 inset-x-0 z-30 pointer-events-none">
+      <div className="fixed bottom-24 inset-x-0 z-30 pointer-events-none lg:pl-64">
         <div className="mx-auto w-full max-w-md flex justify-center pb-2">
           <div className="pointer-events-auto">
             <PeriodTabs value={period} onChange={setPeriod} />

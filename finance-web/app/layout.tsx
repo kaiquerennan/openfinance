@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Poppins } from "next/font/google";
 import BottomNav from "@/components/BottomNav";
+import Sidebar from "@/components/Sidebar";
 import "./globals.css";
 
 const poppins = Poppins({
@@ -27,9 +28,12 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="pt-BR" className={`h-full antialiased ${poppins.variable}`}>
-      <body className="min-h-full">
-        <div className="app-col mx-auto w-full max-w-md relative pb-32">
-          {children}
+      <body className="min-h-full lg:flex">
+        <Sidebar />
+        <div className="lg:flex-1 lg:min-w-0">
+          <div className="app-col mx-auto w-full max-w-md lg:max-w-6xl relative pb-32 lg:pb-12">
+            {children}
+          </div>
         </div>
         <BottomNav />
       </body>

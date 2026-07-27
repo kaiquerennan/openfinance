@@ -6,8 +6,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { api, AnalyticsReport } from "@/lib/api";
-import Sheet from "@/components/Sheet";
+import InsightsSheet from "@/components/InsightsSheet";
 import {
   IconArrows,
   IconBars,
@@ -57,8 +56,6 @@ export default function BottomNav() {
   const [slot, setSlot] = useState(0);
   const [slotOpen, setSlotOpen] = useState(false);
   const [aiOpen, setAiOpen] = useState(false);
-  const [report, setReport] = useState<AnalyticsReport | null>(null);
-  const [aiError, setAiError] = useState<string | null>(null);
 
   // Preferência persistida do 4º slot (leitura única pós-hidratação).
   useEffect(() => {
@@ -75,30 +72,12 @@ export default function BottomNav() {
     if (routeIdx >= 0) localStorage.setItem("nav-slot", String(routeIdx));
   }, [routeIdx]);
 
-  useEffect(() => {
-    if (!aiOpen || report) return;
-    api
-      .report()
-      .then(setReport)
-      .catch((e) => setAiError(e.message));
-  }, [aiOpen, report]);
-
   const current = SLOT_OPTIONS[effSlot];
   const slotActive = pathname === current.href;
 
-  const insights = report
-    ? [
-        ...report.narrative.avisos,
-        ...report.narrative.insightsAutomaticos,
-        ...report.narrative.alertas,
-        ...report.narrative.oportunidades,
-        ...report.narrative.recomendacoes,
-      ]
-    : [];
-
   return (
     <>
-      <nav className="fixed bottom-0 inset-x-0 z-40 pointer-events-none">
+      <nav className="fixed bottom-0 inset-x-0 z-40 pointer-events-none lg:hidden">
         <div className="mx-auto w-full max-w-md px-4 pb-4 pt-2 flex items-center gap-3">
           <div className="pointer-events-auto flex-1 flex items-center justify-between bg-white/90 backdrop-blur-xl rounded-full px-3 py-2 shadow-[0_12px_40px_-12px_rgba(10,30,80,0.35)]">
             <NavItem href="/" active={pathname === "/"} label="Visão geral">
@@ -172,33 +151,7 @@ export default function BottomNav() {
         </div>
       )}
 
-      {/* Insights (✦) */}
-      <Sheet open={aiOpen} onClose={() => setAiOpen(false)} title="Insights ✦">
-        {aiError ? (
-          <p className="text-sm text-neg">{aiError}</p>
-        ) : !report ? (
-          <p className="text-sm text-ink-dim py-6 text-center">
-            Analisando suas finanças…
-          </p>
-        ) : (
-          <div className="space-y-3">
-            {insights.slice(0, 10).map((t, i) => (
-              <div
-                key={i}
-                className="flex gap-3 bg-soft rounded-2xl p-4 text-sm text-ink leading-relaxed"
-              >
-                <span className="text-accent shrink-0 mt-0.5">
-                  <IconSparkle size={16} />
-                </span>
-                {t}
-              </div>
-            ))}
-            {insights.length === 0 && (
-              <p className="text-sm text-ink-dim">Sem insights para este mês.</p>
-            )}
-          </div>
-        )}
-      </Sheet>
+      <InsightsSheet open={aiOpen} onClose={() => setAiOpen(false)} />
     </>
   );
 }

@@ -94,7 +94,7 @@ export default function CategoriasPage() {
               <span className="w-24 text-right">Gasto</span>
               <span className="w-28 text-right">Limite</span>
             </div>
-            <div className="space-y-5 px-2">
+            <div className="space-y-5 px-2 lg:columns-2 lg:gap-x-10 lg:space-y-0">
               {byCategory.map((c) => {
                 const meta = catMeta(c.category);
                 const color = catColor(c.category);
@@ -104,7 +104,7 @@ export default function CategoriasPage() {
                   <button
                     key={c.category}
                     onClick={() => setLimitCat(c.category)}
-                    className="w-full flex items-center gap-2"
+                    className="w-full flex items-center gap-2 lg:break-inside-avoid lg:mb-5"
                   >
                     <span
                       className="w-0 h-0 border-y-[7px] border-y-transparent border-l-[11px] shrink-0"

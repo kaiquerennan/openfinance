@@ -220,11 +220,11 @@ export default function HomePage() {
         {loading ? (
           <LoadingCard text="Carregando suas finanças…" />
         ) : (
-          <>
+          <div className="space-y-4 lg:space-y-0 lg:grid lg:grid-cols-3 lg:gap-5 lg:items-start">
             {/* Contas a pagar */}
             {upcoming.length > 0 && (
               <Card
-                className="flex items-center gap-4 cursor-pointer"
+                className="flex items-center gap-4 cursor-pointer lg:col-span-3"
                 onClick={() => router.push("/transacoes?tab=recorrentes")}
               >
                 <div className="flex -space-x-3 shrink-0">
@@ -259,7 +259,7 @@ export default function HomePage() {
             )}
 
             {/* Contas */}
-            <Card>
+            <Card className="lg:col-span-1">
               <CardHeader title="Contas" onOpen={() => router.push("/contas")} />
               <div className="divide-y divide-edge">
                 {sortAccounts(accounts ?? []).map((a) => (
@@ -294,7 +294,7 @@ export default function HomePage() {
             </Card>
 
             {/* Últimas transações */}
-            <Card>
+            <Card className="lg:col-span-2">
               <CardHeader
                 title="Últimas transações"
                 onOpen={() => router.push("/transacoes?tab=lancamentos")}
@@ -303,7 +303,7 @@ export default function HomePage() {
                 <TxList transactions={(recent ?? []).slice(0, 8)} />
               </div>
             </Card>
-          </>
+          </div>
         )}
       </div>
 

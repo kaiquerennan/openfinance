@@ -104,50 +104,54 @@ export default function MetasPage() {
         {!goals ? (
           <LoadingCard text="Carregando metas…" />
         ) : (
-          <div className="rise space-y-4">
-            <GoalBars data={chart} height={290} />
+          <div className="rise space-y-4 lg:space-y-5">
+            <div className="lg:grid lg:grid-cols-3 lg:gap-6 lg:items-start space-y-4 lg:space-y-0">
+              <div className="lg:col-span-2">
+                <GoalBars data={chart} height={290} />
+              </div>
 
-            {/* Resumo do mês */}
-            <Card>
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-bold text-ink">
-                  {monthLabel(month).replace(" ", " de ")}
-                </h2>
-                <span className="text-sm text-ink-faint">
-                  {active.length} meta{active.length !== 1 ? "s" : ""} ativa
-                  {active.length !== 1 ? "s" : ""}
-                </span>
-              </div>
-              <div className="mt-3 space-y-4">
-                {active.map((g) => (
-                  <div key={g.id} className="flex items-center gap-3.5">
-                    <span className="h-11 w-11 rounded-2xl bg-soft grid place-items-center text-xl shrink-0">
-                      {g.icon}
-                    </span>
-                    <span className="flex-1 text-[16px] font-medium text-ink truncate">
-                      {g.name}
-                    </span>
-                    <Money
-                      value={monthTotal(g) || Number(g.monthlyContribution ?? 0)}
-                      cents={false}
-                      className="text-[17px]"
-                    />
-                  </div>
-                ))}
-                {active.length === 0 && (
-                  <p className="text-sm text-ink-faint">Nenhuma meta ativa.</p>
-                )}
-              </div>
-              <div className="flex items-center justify-between pt-4 mt-2 border-t border-edge">
-                <span className="text-[16px] font-medium text-ink">Total</span>
-                <Money value={savedTotal} cents={false} className="text-xl" />
-              </div>
-            </Card>
+              {/* Resumo do mês */}
+              <Card className="lg:col-span-1">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-bold text-ink">
+                    {monthLabel(month).replace(" ", " de ")}
+                  </h2>
+                  <span className="text-sm text-ink-faint">
+                    {active.length} meta{active.length !== 1 ? "s" : ""} ativa
+                    {active.length !== 1 ? "s" : ""}
+                  </span>
+                </div>
+                <div className="mt-3 space-y-4">
+                  {active.map((g) => (
+                    <div key={g.id} className="flex items-center gap-3.5">
+                      <span className="h-11 w-11 rounded-2xl bg-soft grid place-items-center text-xl shrink-0">
+                        {g.icon}
+                      </span>
+                      <span className="flex-1 text-[16px] font-medium text-ink truncate">
+                        {g.name}
+                      </span>
+                      <Money
+                        value={monthTotal(g) || Number(g.monthlyContribution ?? 0)}
+                        cents={false}
+                        className="text-[17px]"
+                      />
+                    </div>
+                  ))}
+                  {active.length === 0 && (
+                    <p className="text-sm text-ink-faint">Nenhuma meta ativa.</p>
+                  )}
+                </div>
+                <div className="flex items-center justify-between pt-4 mt-2 border-t border-edge">
+                  <span className="text-[16px] font-medium text-ink">Total</span>
+                  <Money value={savedTotal} cents={false} className="text-xl" />
+                </div>
+              </Card>
+            </div>
 
             <SegTabs variant="light" tabs={TABS} value={tab} onChange={setTab} />
 
             {/* Cards de meta */}
-            <div className="space-y-3">
+            <div className="space-y-3 lg:space-y-0 lg:grid lg:grid-cols-2 lg:gap-4">
               {list.map((g) => {
                 const target = Number(g.targetAmount);
                 const pct = target > 0 ? Math.min(Math.round((g.saved / target) * 100), 100) : 0;

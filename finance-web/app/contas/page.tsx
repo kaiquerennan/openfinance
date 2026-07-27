@@ -64,8 +64,8 @@ export default function ContasPage() {
         {!accounts ? (
           <LoadingCard />
         ) : (
-          <div className="rise space-y-4">
-            <Card>
+          <div className="rise space-y-4 lg:space-y-0 lg:grid lg:grid-cols-3 lg:gap-5 lg:items-start">
+            <Card className="lg:col-span-2">
               <div className="divide-y divide-edge">
                 {sortAccounts(accounts).map((a) => (
                   <div key={a.id} className="flex items-center gap-3.5 py-4">
@@ -117,7 +117,9 @@ export default function ContasPage() {
               </div>
             </Card>
 
-            <ConnectBankButton onConnected={sync} />
+            <div className="lg:col-span-1">
+              <ConnectBankButton onConnected={sync} />
+            </div>
           </div>
         )}
       </div>

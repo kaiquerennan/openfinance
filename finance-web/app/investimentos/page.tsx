@@ -80,9 +80,11 @@ export default function InvestimentosPage() {
         ) : all.length === 0 ? (
           <EmptyState text="Nenhuma movimentação de investimento encontrada." />
         ) : (
-          <div className="rise space-y-4">
-            <ValueBars data={monthly} height={230} positiveColor="#0ea5e9" />
-            <Card>
+          <div className="rise space-y-4 lg:space-y-0 lg:grid lg:grid-cols-3 lg:gap-6 lg:items-start">
+            <div className="lg:col-span-2">
+              <ValueBars data={monthly} height={230} positiveColor="#0ea5e9" />
+            </div>
+            <Card className="lg:col-span-1">
               <div className="text-sm font-semibold text-ink-dim mb-3">
                 Movimentações
               </div>
