@@ -46,7 +46,7 @@ export interface TrendPoint {
 
 export interface HealthScore {
   score: number; // 0-100
-  rating: 'Critico' | 'Atencao' | 'Bom' | 'Excelente';
+  rating: 'Crítico' | 'Atenção' | 'Bom' | 'Excelente';
   components: { label: string; points: number; max: number; note: string }[];
 }
 
@@ -65,7 +65,7 @@ export interface AnalyticsData {
     consumption: number;
     savings: number;
     commitmentPct: number; // consumo / renda * 100
-    classification: 'Critico' | 'Atencao' | 'Estavel' | 'Saudavel';
+    classification: 'Crítico' | 'Atenção' | 'Estável' | 'Saudável';
     changeVsPrevPct: number | null; // variacao do consumo vs mes anterior
   };
 

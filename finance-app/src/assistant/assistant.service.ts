@@ -16,7 +16,7 @@ export class AssistantService {
       const apiKey = process.env.GEMINI_API_KEY;
       if (!apiKey) {
         throw new InternalServerErrorException(
-          'GEMINI_API_KEY nao configurada no servidor',
+          'GEMINI_API_KEY não configurada no servidor',
         );
       }
       this.client = new GoogleGenAI({ apiKey });
@@ -29,11 +29,11 @@ export class AssistantService {
     const report = await this.analytics.report(month);
 
     const systemInstruction =
-      'Voce e um consultor financeiro pessoal, respondendo em portugues do Brasil, ' +
-      'de forma direta e concisa (poucos paragrafos). Use APENAS os dados JSON ' +
-      'abaixo (analise financeira do usuario no mes) como base factual. Se a ' +
-      'pergunta nao puder ser respondida com esses dados, diga isso claramente ' +
-      'em vez de inventar numeros. Responda em texto plano, sem markdown ' +
+      'Você é um consultor financeiro pessoal, respondendo em português do Brasil ' +
+      'com acentuação correta, de forma direta e concisa (poucos parágrafos). Use ' +
+      'APENAS os dados JSON abaixo (análise financeira do usuário no mês) como base ' +
+      'factual. Se a pergunta não puder ser respondida com esses dados, diga isso ' +
+      'claramente em vez de inventar números. Responda em texto plano, sem markdown ' +
       '(sem **negrito**, sem #, sem listas com -), pois o texto aparece cru na tela.\n\n' +
       `Dados financeiros (JSON):\n${JSON.stringify(report.data)}`;
 

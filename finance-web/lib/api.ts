@@ -32,7 +32,7 @@ export interface Subscription {
 
 export interface HealthScore {
   score: number;
-  rating: 'Critico' | 'Atencao' | 'Bom' | 'Excelente';
+  rating: 'Crítico' | 'Atenção' | 'Bom' | 'Excelente';
   components: { label: string; points: number; max: number; note: string }[];
 }
 

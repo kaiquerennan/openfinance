@@ -80,12 +80,12 @@ export function computeAnalytics(all: Tx[], targetMonth: string): AnalyticsData 
 
   const classification: AnalyticsData['summary']['classification'] =
     commitmentPct > 100
-      ? 'Critico'
+      ? 'Crítico'
       : commitmentPct > 85
-        ? 'Atencao'
+        ? 'Atenção'
         : commitmentPct > 65
-          ? 'Estavel'
-          : 'Saudavel';
+          ? 'Estável'
+          : 'Saudável';
 
   // --- Categorias ---
   const categories = computeCategories(thisM, prevM, all, targetMonth, consumption);
@@ -140,11 +140,11 @@ export function computeAnalytics(all: Tx[], targetMonth: string): AnalyticsData 
   const notes: string[] = [];
   if (!incomeReliable)
     notes.push(
-      `Apenas ${incomeShare}% das suas entradas sao renda de fato — o resto e transferencia/emprestimo/investimento. Sem uma renda confiavel, percentuais "sobre a renda" e a classificacao do mes nao refletem sua realidade, entao a analise foca no consumo (que e mensuravel).`,
+      `Apenas ${incomeShare}% das suas entradas são renda de fato — o resto é transferência/empréstimo/investimento. Sem uma renda confiável, percentuais "sobre a renda" e a classificação do mês não refletem sua realidade, então a análise foca no consumo (que é mensurável).`,
     );
   if (uncertainShare > 25)
     notes.push(
-      `${uncertainShare}% das transacoes tem categoria desconhecida e foram classificadas por heuristica.`,
+      `${uncertainShare}% das transações têm categoria desconhecida e foram classificadas por heurística.`,
     );
 
   return {
@@ -334,7 +334,7 @@ function computeWaste(thisM: Tx[], feesOut: number) {
       label: cat,
       total,
       count: txs.length,
-      note: `${txs.length}x em ${cat} no mes, somando R$ ${total.toFixed(2)}.`,
+      note: `${txs.length}x em ${cat} no mês, somando R$ ${total.toFixed(2)}.`,
     });
   }
   if (feesOut > 0)
@@ -342,7 +342,7 @@ function computeWaste(thisM: Tx[], feesOut: number) {
       label: 'Taxas e juros',
       total: feesOut,
       count: 0,
-      note: `R$ ${feesOut.toFixed(2)} em taxas/juros/multas no mes — valor evitavel.`,
+      note: `R$ ${feesOut.toFixed(2)} em taxas/juros/multas no mês — valor evitável.`,
     });
   return out.sort((a, b) => b.total - a.total);
 }
@@ -397,10 +397,10 @@ function computeHealth(
   const sr = t3.savingsRatePct;
   const savePts = Math.max(0, Math.min(30, Math.round((sr / 20) * 30)));
   components.push({
-    label: 'Capacidade de poupanca',
+    label: 'Capacidade de poupança',
     points: savePts,
     max: 30,
-    note: `Taxa de poupanca (3m): ${sr}%`,
+    note: `Taxa de poupança (3m): ${sr}%`,
   });
 
   // 2) Regularidade dos gastos (15) — menor volatilidade mensal = melhor
@@ -435,17 +435,17 @@ function computeHealth(
     label: 'Crescimento financeiro',
     points: growthPts,
     max: 15,
-    note: `Poupanca 3m (${t3.savingsRatePct}%) vs 6m (${t6.savingsRatePct}%)`,
+    note: `Poupança 3m (${t3.savingsRatePct}%) vs 6m (${t6.savingsRatePct}%)`,
   });
 
   // 4) Dependencia de credito/divida (15) — menor comprometimento = melhor
   const debtShare = pct(debtOut + feesOut, Math.max(income, 1));
   const debtPts = Math.max(0, Math.min(15, Math.round(15 - (debtShare / 50) * 15)));
   components.push({
-    label: 'Dependencia de divida',
+    label: 'Dependência de dívida',
     points: debtPts,
     max: 15,
-    note: `Divida+taxas sobre renda: ${debtShare}%`,
+    note: `Dívida+taxas sobre renda: ${debtShare}%`,
   });
 
   // 5) Reserva financeira (15) — investimentos liquidos acumulados positivos
@@ -455,21 +455,21 @@ function computeHealth(
     label: 'Reserva financeira',
     points: reservePts,
     max: 15,
-    note: investedNet > 0 ? `Investido liquido acumulado: R$ ${round2(investedNet).toFixed(2)}` : 'Sem reserva/investimento liquido positivo',
+    note: investedNet > 0 ? `Investido líquido acumulado: R$ ${round2(investedNet).toFixed(2)}` : 'Sem reserva/investimento líquido positivo',
   });
 
   // 6) Controle orcamentario (10) — consumo do mes vs media 6m
   const lastC = monthsConsumption[monthsConsumption.length - 1] ?? 0;
   const ctrlPts = meanC > 0 && lastC <= meanC ? 10 : 4;
   components.push({
-    label: 'Controle orcamentario',
+    label: 'Controle orçamentário',
     points: ctrlPts,
     max: 10,
-    note: `Consumo do mes vs media 6m (R$ ${round2(meanC).toFixed(2)})`,
+    note: `Consumo do mês vs média 6m (R$ ${round2(meanC).toFixed(2)})`,
   });
 
   const score = components.reduce((a, c) => a + c.points, 0);
   const rating: HealthScore['rating'] =
-    score >= 80 ? 'Excelente' : score >= 60 ? 'Bom' : score >= 40 ? 'Atencao' : 'Critico';
+    score >= 80 ? 'Excelente' : score >= 60 ? 'Bom' : score >= 40 ? 'Atenção' : 'Crítico';
   return { score, rating, components };
 }
