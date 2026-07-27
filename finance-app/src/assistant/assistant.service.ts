@@ -46,11 +46,13 @@ export class AssistantService {
     }
     const targetMonth = month ?? months[months.length - 1];
 
-    const [currentReport, accounts] = await Promise.all([
+    const [currentReport, accounts, goals, budgets] = await Promise.all([
       this.analytics.report(targetMonth),
       this.prisma.account.findMany({
         include: { item: { select: { connectorName: true } } },
       }),
+      this.prisma.goal.findMany({ include: { entries: true } }),
+      this.prisma.budget.findMany(),
     ]);
 
     const accountsSummary = accounts.map((a) => ({
@@ -58,6 +60,16 @@ export class AssistantService {
       tipo: a.type,
       subtipo: a.subtype,
       saldoAtual: a.balance,
+    }));
+
+    const goalsSummary = goals.map((g) => ({
+      nome: g.name,
+      valorAlvo: g.targetAmount,
+      jaPoupado:
+        Number(g.initialAmount) + g.entries.reduce((s, e) => s + Number(e.amount), 0),
+      aporteMensalPlanejado: g.monthlyContribution,
+      prazo: g.deadline,
+      status: g.status,
     }));
 
     const otherMonths = months.slice(-HISTORY_MONTHS).filter((m) => m !== targetMonth);
@@ -70,14 +82,20 @@ export class AssistantService {
 
     const systemInstruction =
       'Você é um consultor financeiro pessoal, respondendo em português do Brasil ' +
-      'com acentuação correta, de forma direta e concisa (poucos parágrafos). Use ' +
-      'APENAS os dados JSON abaixo como base factual — eles cobrem tanto o estado ' +
-      'geral (contas e saldos atuais, histórico resumido de vários meses) quanto o ' +
-      'detalhe completo do mês mais relevante. Se a pergunta pedir algo fora desses ' +
-      'dados (ex.: um mês sem histórico disponível), diga isso claramente em vez de ' +
-      'inventar números. Responda em texto plano, sem markdown (sem **negrito**, ' +
-      'sem #, sem listas com -), pois o texto aparece cru na tela.\n\n' +
+      'com acentuação correta, de forma direta e concisa (poucos parágrafos). Os ' +
+      'dados JSON abaixo (contas, histórico de meses, detalhe do mês mais recente) ' +
+      'são sua ÚNICA fonte para fatos sobre o usuário (saldos, gastos, renda, ' +
+      'categorias) — nunca invente ou estime um desses valores caso não estejam ' +
+      'presentes nos dados; diga que a informação não está disponível. ISSO NÃO SE ' +
+      'APLICA a números que o próprio usuário informar na pergunta (uma meta, um ' +
+      'valor hipotético, um prazo etc.) — nesses casos, faça o cálculo ou projeção ' +
+      'normalmente combinando esse número com os dados reais fornecidos (ex.: ' +
+      'quanto falta para uma meta, quanto precisaria poupar por mês, simulações). ' +
+      'Responda em texto plano, sem markdown (sem **negrito**, sem #, sem listas ' +
+      'com -), pois o texto aparece cru na tela.\n\n' +
       `Contas conectadas e saldo atual (JSON):\n${JSON.stringify(accountsSummary)}\n\n` +
+      `Metas de poupança cadastradas pelo usuário (JSON):\n${JSON.stringify(goalsSummary)}\n\n` +
+      `Limites de gasto (orçamentos) definidos (JSON):\n${JSON.stringify(budgets)}\n\n` +
       `Histórico resumido de outros meses (JSON):\n${JSON.stringify(history)}\n\n` +
       `Dados completos do mês ${targetMonth} (JSON):\n${JSON.stringify(currentReport.data)}`;
 
