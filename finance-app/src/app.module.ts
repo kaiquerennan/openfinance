@@ -8,6 +8,7 @@ import { ConnectModule } from './connect/connect.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { PlanningModule } from './planning/planning.module';
 import { AuthModule } from './auth/auth.module';
+import { AssistantModule } from './assistant/assistant.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { AuthModule } from './auth/auth.module';
     ConnectModule,
     AnalyticsModule,
     PlanningModule,
+    AssistantModule,
   ],
 })
 export class AppModule {}

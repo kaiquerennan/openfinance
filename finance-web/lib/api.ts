@@ -270,6 +270,8 @@ export const api = {
   months: () => get<string[]>('/analytics/months'),
   report: (month?: string) =>
     get<AnalyticsReport>(`/analytics/report${month ? `?month=${month}` : ''}`),
+  askAssistant: (question: string, month?: string) =>
+    post<{ answer: string }>('/assistant/ask', { question, month }),
   items: () => get<DbItem[]>('/pluggy/items'),
   accounts: () => get<DbAccount[]>('/pluggy/db/accounts'),
   transactions: (q: TxQuery = {}) =>
