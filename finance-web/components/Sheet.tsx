@@ -32,7 +32,7 @@ export default function Sheet({
     <div className="fixed inset-0 z-50">
       <div className="absolute inset-0 bg-black/45 fade-in" onClick={onClose} />
       <div className="absolute inset-x-0 bottom-0 mx-auto w-full max-w-md">
-        <div className="sheet-up bg-white rounded-t-[2rem] px-5 pt-3 pb-8 max-h-[85dvh] overflow-y-auto">
+        <div className="sheet-up bg-card rounded-t-[2rem] px-5 pt-3 pb-8 max-h-[85dvh] overflow-y-auto">
           <div className="mx-auto h-1.5 w-10 rounded-full bg-soft mb-3" />
           {title && (
             <div className="flex items-center justify-between mb-4">

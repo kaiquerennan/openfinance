@@ -20,7 +20,7 @@ export default function ConnectBankButton({
         disabled={loading}
         className="card p-5 flex items-center gap-3.5 w-full text-left disabled:opacity-60"
       >
-        <span className="h-11 w-11 rounded-2xl bg-[#e4ebfb] grid place-items-center text-accent shrink-0">
+        <span className="h-11 w-11 rounded-2xl bg-soft grid place-items-center text-accent shrink-0">
           <IconLink size={20} />
         </span>
         <div className="flex-1">

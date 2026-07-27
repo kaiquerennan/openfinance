@@ -4,18 +4,18 @@
   --font-sans: var(--font-poppins), ui-sans-serif, system-ui, -apple-system,
     "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 
-  /* Superfícies (light, estilo app mobile) */
-  --color-base: #f2f3f5;
-  --color-card: #ffffff;
-  --color-soft: #eef0f3;
-  --color-edge: #e6e8ec;
+  /* Superfícies (dark, estilo app de referência) */
+  --color-base: #000000;
+  --color-card: #17171a;
+  --color-soft: #212126;
+  --color-edge: #2c2c31;
 
   /* Texto */
-  --color-ink: #16181d;
-  --color-ink-dim: #7a8089;
-  --color-ink-faint: #a8adb8;
+  --color-ink: #f4f4f6;
+  --color-ink-dim: #96969e;
+  --color-ink-faint: #64646c;
 
-  /* Azul da marca (header e nav) */
+  /* Azul da marca (destaques / nav ativa) */
   --color-azure-300: #7db2ff;
   --color-azure-400: #3f8bfa;
   --color-azure-500: #1e74f0;
@@ -24,21 +24,21 @@
   --color-navy: #0b2b66;
 
   /* Acentos */
-  --color-accent: #4e77f6; /* ícone ativo da nav / pill de período */
-  --color-pos: #22c55e;
-  --color-neg: #ef4444;
-  --color-line: #ff4d67; /* linha de gasto no header */
+  --color-accent: #3f8bfa; /* ícone/pill ativo da nav */
+  --color-pos: #34d17a;
+  --color-neg: #ff5d5d;
+  --color-line: #ff3b3b; /* linha de gasto acima do limite */
   --color-amber: #f0a818;
-  --color-amber-soft: #f7e2ae;
+  --color-amber-soft: #4a3a1a;
 }
 
 html {
   scroll-behavior: smooth;
-  color-scheme: light;
+  color-scheme: dark;
 }
 
 body {
-  background: #e9eaee;
+  background: #000000;
   color: var(--color-ink);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
@@ -52,26 +52,25 @@ body {
 }
 @media (min-width: 512px) and (max-width: 1023px) {
   .app-col {
-    box-shadow: 0 0 60px -20px rgba(10, 40, 90, 0.35);
+    box-shadow: 0 0 60px -20px rgba(0, 0, 0, 0.6);
   }
 }
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: #cfd3da transparent;
+  scrollbar-color: #3a3a40 transparent;
 }
 
-/* Header azul degradê com base arredondada */
+/* Cartão de destaque em degradê azul (dica do Visor / tips) */
 .blue-hero {
-  background: linear-gradient(180deg, #2b80f6 0%, #1266e2 55%, #0a55d5 100%);
-  border-bottom-left-radius: 2.25rem;
-  border-bottom-right-radius: 2.25rem;
+  background: linear-gradient(135deg, #3f8bfa 0%, #1e74f0 55%, #0a3fa0 100%);
+  border-radius: 1.75rem;
 }
 
-/* Botões translúcidos do header */
+/* Botões translúcidos sobre o fundo escuro */
 .hero-btn {
-  background: rgba(255, 255, 255, 0.16);
-  border: 1px solid rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   color: #fff;
   backdrop-filter: blur(6px);
 }
@@ -99,9 +98,9 @@ body {
   text-overflow: ellipsis;
 }
 
-/* Tabs segmentadas sobre o azul */
+/* Tabs segmentadas (uso geral, sobre o fundo escuro) */
 .seg {
-  background: rgba(9, 45, 120, 0.35);
+  background: var(--color-soft);
   border-radius: 999px;
   padding: 0.3rem;
 }
@@ -110,19 +109,19 @@ body {
   padding: 0.55rem 0;
   font-size: 0.875rem;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--color-ink-dim);
   flex: 1;
   transition: all 0.2s ease;
 }
 .seg button[data-active="true"] {
-  background: #fff;
-  color: #10275a;
-  box-shadow: 0 6px 18px -6px rgba(4, 24, 68, 0.5);
+  background: var(--color-accent);
+  color: #fff;
+  box-shadow: 0 6px 18px -6px rgba(63, 139, 250, 0.5);
 }
 
-/* Tabs segmentadas sobre fundo claro */
+/* Tabs segmentadas (variante clara, cards internos) */
 .seg-light {
-  background: #e8eaee;
+  background: var(--color-soft);
   border-radius: 999px;
   padding: 0.3rem;
 }
@@ -136,9 +135,9 @@ body {
   transition: all 0.2s ease;
 }
 .seg-light button[data-active="true"] {
-  background: #fff;
+  background: var(--color-edge);
   color: var(--color-ink);
-  box-shadow: 0 4px 14px -6px rgba(20, 30, 60, 0.35);
+  box-shadow: 0 4px 14px -6px rgba(0, 0, 0, 0.35);
 }
 
 /* Animações */

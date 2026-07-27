@@ -1,18 +1,17 @@
 "use client";
 
-// Header azul degradê: botão de menu à esquerda, título ao centro e a pill
-// de ações (sync / novo lançamento) à direita. `children` é o conteúdo hero.
+// Header escuro e plano: título à esquerda e ícones de ação (esconder
+// valores / novo lançamento) à direita. `children` é o conteúdo da página
+// logo abaixo (números grandes, gráficos etc — sem cartão/fundo próprio).
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { api } from "@/lib/api";
-import { bumpData } from "@/lib/bus";
 import { toggleHideValues, useHideValues } from "@/lib/privacy";
-import { useConnectBank } from "@/lib/useConnectBank";
 import AddTxSheet from "@/components/AddTxSheet";
-import Sheet from "@/components/Sheet";
-import { PrimaryButton } from "@/components/ui";
+import InsightsSheet from "@/components/InsightsSheet";
+import SyncSheet from "@/components/SyncSheet";
 import {
   IconArrows,
   IconBars,
@@ -22,13 +21,13 @@ import {
   IconEye,
   IconEyeOff,
   IconFlow,
-  IconGear,
   IconHome,
   IconPie,
   IconPlus,
-  IconSync,
+  IconSliders,
   IconTarget,
   IconTrophy,
+  IconUpDown,
   IconWallet,
   IconX,
 } from "@/components/icons";
@@ -43,6 +42,7 @@ export const MENU = [
     icon: <IconCalendarDots size={20} />,
   },
   { href: "/analises", label: "Fluxo de Caixa", icon: <IconFlow size={20} /> },
+  { href: "/projecao", label: "Projeção", icon: <IconBars size={20} /> },
   { href: "/contas", label: "Contas", icon: <IconWallet size={20} /> },
   { href: "/investimentos", label: "Investimentos", icon: <IconBars size={20} /> },
   { href: "/cartoes", label: "Cartões", icon: <IconCard size={20} /> },
@@ -68,78 +68,32 @@ export default function BlueHeader({
   const [menuOpen, setMenuOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [syncOpen, setSyncOpen] = useState(false);
-  const [syncing, setSyncing] = useState(false);
-  const [syncMsg, setSyncMsg] = useState<string | null>(null);
+  const [aiOpen, setAiOpen] = useState(false);
   const hideValues = useHideValues();
 
-  async function syncNow() {
-    setSyncing(true);
-    setSyncMsg(null);
-    try {
-      await api.syncAll();
-      setSyncMsg(
-        "Sincronização iniciada em segundo plano. Isso pode levar até 1 minuto — os dados atualizam sozinhos.",
-      );
-      // O sync roda no servidor; espera um pouco e atualiza a tela sozinha.
-      setTimeout(bumpData, 20_000);
-    } catch (e) {
-      setSyncMsg((e as Error).message);
-    } finally {
-      setSyncing(false);
-    }
-  }
-
-  const {
-    open: openConnect,
-    loading: connecting,
-    error: connectError,
-    widget: connectWidget,
-  } = useConnectBank(async (itemId) => {
-    setSyncing(true);
-    setSyncMsg(null);
-    try {
-      await api.syncItem(itemId);
-      setSyncMsg(
-        "Banco conectado! A sincronização está rodando em segundo plano e os dados atualizam sozinhos em instantes.",
-      );
-      setTimeout(bumpData, 20_000);
-    } catch (e) {
-      setSyncMsg((e as Error).message);
-    } finally {
-      setSyncing(false);
-    }
-  });
-
   return (
-    <header className="blue-hero px-5 pt-4 pb-7 text-white">
+    <header className="px-5 pt-5 pb-2 text-ink">
       <div className="flex items-center justify-between">
         <button
           aria-label="Menu"
           onClick={() => setMenuOpen(true)}
-          className="hero-btn h-12 w-12 rounded-full grid place-items-center"
+          className="h-9 w-9 rounded-full grid place-items-center text-ink-dim -ml-1.5 lg:hidden"
         >
-          <IconTarget size={22} />
+          <IconTarget size={18} />
         </button>
-        {title && <h1 className="text-xl font-semibold">{title}</h1>}
-        <div className="hero-btn rounded-full flex items-center p-1.5 gap-1">
+        {title && <h1 className="text-2xl font-semibold">{title}</h1>}
+        <div className="flex items-center gap-2">
           <button
             aria-label={hideValues ? "Mostrar valores" : "Esconder valores"}
             onClick={toggleHideValues}
-            className="h-9 w-9 rounded-full grid place-items-center bg-white/15"
+            className="h-10 w-10 rounded-full grid place-items-center bg-soft text-ink-dim"
           >
             {hideValues ? <IconEyeOff size={17} /> : <IconEye size={17} />}
           </button>
           <button
-            aria-label="Sincronizar"
-            onClick={() => setSyncOpen(true)}
-            className="h-9 w-9 rounded-full grid place-items-center bg-white/15"
-          >
-            <IconGear size={17} />
-          </button>
-          <button
             aria-label="Adicionar"
             onClick={() => (onAdd ? onAdd() : setAddOpen(true))}
-            className="h-9 w-9 rounded-full grid place-items-center bg-white/25"
+            className="h-10 w-10 rounded-full grid place-items-center bg-soft text-ink-dim"
           >
             <IconPlus size={17} />
           </button>
@@ -147,15 +101,44 @@ export default function BlueHeader({
       </div>
       {children}
 
-      {/* Menu (painel flutuante inferior-esquerdo) */}
+      {/* Menu (painel flutuante inferior-esquerdo, só mobile — desktop usa a Sidebar fixa) */}
       {menuOpen && (
         <div className="fixed inset-0 z-50" onClick={() => setMenuOpen(false)}>
-          <div className="absolute inset-0 bg-black/25 fade-in" />
+          <div className="absolute inset-0 bg-black/60 fade-in" />
           <div className="absolute bottom-6 inset-x-0 mx-auto w-full max-w-md px-4">
             <div
-              className="pop w-72 max-h-[78dvh] overflow-y-auto bg-white/90 backdrop-blur-xl rounded-[2rem] p-3 shadow-2xl"
+              className="pop w-72 max-h-[78dvh] overflow-y-auto bg-card backdrop-blur-xl rounded-[2rem] p-3 shadow-2xl border border-edge"
               onClick={(e) => e.stopPropagation()}
             >
+              <div className="flex items-center gap-2 px-1 pb-3 mb-2 border-b border-edge">
+                <div className="flex-1 flex items-center gap-2 bg-soft rounded-full pl-1.5 pr-3 py-1.5">
+                  <span className="h-7 w-7 rounded-lg bg-accent grid place-items-center text-white shrink-0">
+                    <IconHome size={15} />
+                  </span>
+                  <span className="text-sm font-semibold text-ink flex-1 truncate">Pessoal</span>
+                  <IconUpDown size={11} />
+                </div>
+                <button
+                  aria-label="Perguntar ao Visor"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    setAiOpen(true);
+                  }}
+                  className="h-10 w-10 rounded-full bg-soft grid place-items-center text-ink-dim shrink-0"
+                >
+                  <IconChat size={17} />
+                </button>
+                <button
+                  aria-label="Sincronizar"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    setSyncOpen(true);
+                  }}
+                  className="h-10 w-10 rounded-full bg-soft grid place-items-center text-ink-dim shrink-0"
+                >
+                  <IconSliders size={17} />
+                </button>
+              </div>
               {MENU.map((m) => {
                 const active = m.href === pathname;
                 return (
@@ -164,16 +147,10 @@ export default function BlueHeader({
                     href={m.href}
                     onClick={() => setMenuOpen(false)}
                     className={`flex items-center gap-3.5 px-4 py-3 rounded-2xl text-[15px] font-semibold ${
-                      active ? "bg-[#eceef2] text-azure-600" : "text-[#5c6470]"
+                      active ? "bg-soft text-accent" : "text-ink-dim"
                     }`}
                   >
-                    <span
-                      className={
-                        active
-                          ? "text-azure-600"
-                          : "text-[#8d95a3]"
-                      }
-                    >
+                    <span className={active ? "text-accent" : "text-ink-faint"}>
                       {m.icon}
                     </span>
                     {m.label}
@@ -186,9 +163,9 @@ export default function BlueHeader({
                   await api.logout().catch(() => {});
                   window.location.href = "/login";
                 }}
-                className="w-full flex items-center gap-3.5 px-4 py-3 rounded-2xl text-[15px] font-semibold text-[#5c6470]"
+                className="w-full flex items-center gap-3.5 px-4 py-3 rounded-2xl text-[15px] font-semibold text-ink-dim"
               >
-                <span className="text-[#8d95a3]">
+                <span className="text-ink-faint">
                   <IconX size={20} />
                 </span>
                 Sair
@@ -198,36 +175,9 @@ export default function BlueHeader({
         </div>
       )}
 
-      {/* Sheet de sincronização / conexão */}
-      <Sheet open={syncOpen} onClose={() => setSyncOpen(false)} title="Contas conectadas">
-        <div className="space-y-3">
-          <p className="text-sm text-ink-dim">
-            Atualize os dados dos bancos conectados via Open Finance ou conecte
-            uma nova instituição. Ao conectar, entre com sua conta MeuPluggy
-            (meu.pluggy.ai) e selecione lá o banco real (Nubank, XP, BB...).
-          </p>
-          <PrimaryButton onClick={syncNow} disabled={syncing}>
-            <span className="inline-flex items-center gap-2">
-              <IconSync size={16} />
-              {syncing ? "Sincronizando…" : "Sincronizar agora"}
-            </span>
-          </PrimaryButton>
-          <button
-            onClick={openConnect}
-            disabled={connecting}
-            className="block text-center w-full rounded-full bg-soft text-ink font-semibold py-3.5 text-sm disabled:opacity-60"
-          >
-            {connecting ? "Abrindo…" : "Conectar novo banco"}
-          </button>
-          {(syncMsg || connectError) && (
-            <p className="text-xs text-ink-dim text-center">{syncMsg ?? connectError}</p>
-          )}
-        </div>
-      </Sheet>
-
-      {connectWidget}
-
+      <SyncSheet open={syncOpen} onClose={() => setSyncOpen(false)} />
       <AddTxSheet open={addOpen} onClose={() => setAddOpen(false)} />
+      <InsightsSheet open={aiOpen} onClose={() => setAiOpen(false)} />
     </header>
   );
 }

@@ -1,29 +1,26 @@
 "use client";
 
-// Nav inferior flutuante: pill com 4 abas (a 4ª é um slot alternável) +
-// botão de insights (✦) que abre a análise do consultor.
+// Nav inferior flutuante: pill escura com 4 destinos fixos (Visão geral,
+// Categorias, Transações, Fluxo de Caixa) + um botão separado pra
+// esconder/mostrar valores, igual ao app de referência.
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import InsightsSheet from "@/components/InsightsSheet";
+import { usePathname } from "next/navigation";
+import { toggleHideValues, useHideValues } from "@/lib/privacy";
 import {
   IconArrows,
-  IconBars,
-  IconCard,
+  IconEye,
+  IconEyeOff,
+  IconFlow,
   IconHome,
   IconPie,
-  IconSparkle,
-  IconTrophy,
-  IconUpDown,
-  IconWallet,
 } from "@/components/icons";
 
-const SLOT_OPTIONS = [
-  { href: "/contas", label: "Contas", icon: <IconWallet size={22} /> },
-  { href: "/metas", label: "Metas", icon: <IconTrophy size={22} /> },
-  { href: "/cartoes", label: "Cartões", icon: <IconCard size={22} /> },
-  { href: "/investimentos", label: "Investimentos", icon: <IconPie size={22} /> },
+const ITEMS = [
+  { href: "/", label: "Visão geral", icon: <IconHome size={21} /> },
+  { href: "/categorias", label: "Categorias", icon: <IconPie size={20} /> },
+  { href: "/transacoes", label: "Transações", icon: <IconArrows size={20} /> },
+  { href: "/analises", label: "Fluxo de Caixa", icon: <IconFlow size={20} /> },
 ];
 
 function NavItem({
@@ -41,8 +38,8 @@ function NavItem({
     <Link
       href={href}
       aria-label={label}
-      className={`h-12 w-12 rounded-full grid place-items-center transition ${
-        active ? "bg-[#e4ebfb] text-accent" : "text-[#b9bec9]"
+      className={`h-11 w-11 rounded-full grid place-items-center transition ${
+        active ? "bg-accent text-white" : "text-ink-faint"
       }`}
     >
       {children}
@@ -52,108 +49,35 @@ function NavItem({
 
 export default function BottomNav() {
   const pathname = usePathname();
-  const router = useRouter();
-  const [slot, setSlot] = useState(0);
-  const [slotOpen, setSlotOpen] = useState(false);
-  const [aiOpen, setAiOpen] = useState(false);
-
-  // Preferência persistida do 4º slot (leitura única pós-hidratação).
-  useEffect(() => {
-    const saved = Number(localStorage.getItem("nav-slot") ?? "0");
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- sync inicial com localStorage
-    if (saved >= 0 && saved < SLOT_OPTIONS.length) setSlot(saved);
-  }, []);
-
-  // Se a rota atual é uma das opções do slot, ela vence a preferência salva.
-  const routeIdx = SLOT_OPTIONS.findIndex((o) => o.href === pathname);
-  const effSlot = routeIdx >= 0 ? routeIdx : slot;
-
-  useEffect(() => {
-    if (routeIdx >= 0) localStorage.setItem("nav-slot", String(routeIdx));
-  }, [routeIdx]);
-
-  const current = SLOT_OPTIONS[effSlot];
-  const slotActive = pathname === current.href;
+  const hideValues = useHideValues();
 
   if (pathname === "/login") return null;
 
   return (
-    <>
-      <nav className="fixed bottom-0 inset-x-0 z-40 pointer-events-none lg:hidden">
-        <div className="mx-auto w-full max-w-md px-4 pb-4 pt-2 flex items-center gap-3">
-          <div className="pointer-events-auto flex-1 flex items-center justify-between bg-white/90 backdrop-blur-xl rounded-full px-3 py-2 shadow-[0_12px_40px_-12px_rgba(10,30,80,0.35)]">
-            <NavItem href="/" active={pathname === "/"} label="Visão geral">
-              <IconHome />
-            </NavItem>
+    <nav className="fixed bottom-0 inset-x-0 z-40 pointer-events-none lg:hidden">
+      <div className="mx-auto w-full max-w-md px-4 pb-4 pt-2 flex items-center gap-3">
+        <div className="pointer-events-auto flex-1 flex items-center justify-between bg-card/95 backdrop-blur-xl border border-edge rounded-full px-2.5 py-2 shadow-[0_12px_40px_-12px_rgba(0,0,0,0.6)]">
+          {ITEMS.map((item) => (
             <NavItem
-              href="/transacoes"
-              active={pathname.startsWith("/transacoes")}
-              label="Transações"
-            >
-              <IconArrows />
-            </NavItem>
-            <NavItem
-              href="/analises"
-              active={pathname.startsWith("/analises")}
-              label="Análises"
-            >
-              <IconBars />
-            </NavItem>
-            <button
-              aria-label={current.label}
-              onClick={() =>
-                slotActive ? setSlotOpen(true) : router.push(current.href)
+              key={item.href}
+              href={item.href}
+              active={
+                item.href === "/" ? pathname === "/" : pathname.startsWith(item.href)
               }
-              className={`h-12 px-3 rounded-full flex items-center gap-1 transition ${
-                slotActive ? "bg-[#e4ebfb] text-accent" : "text-[#b9bec9]"
-              }`}
+              label={item.label}
             >
-              {current.icon}
-              <IconUpDown size={11} />
-            </button>
-          </div>
-          <button
-            aria-label="Insights do consultor"
-            onClick={() => setAiOpen(true)}
-            className="pointer-events-auto h-14 w-14 rounded-full bg-white/90 backdrop-blur-xl grid place-items-center text-[#b9bec9] shadow-[0_12px_40px_-12px_rgba(10,30,80,0.35)]"
-          >
-            <IconSparkle size={24} />
-          </button>
+              {item.icon}
+            </NavItem>
+          ))}
         </div>
-      </nav>
-
-      {/* Alternador do 4º slot */}
-      {slotOpen && (
-        <div className="fixed inset-0 z-50" onClick={() => setSlotOpen(false)}>
-          <div className="absolute inset-0 bg-black/20 fade-in" />
-          <div className="absolute bottom-24 inset-x-0 mx-auto w-full max-w-md px-4">
-            <div
-              className="pop ml-auto mr-16 w-56 bg-white rounded-3xl p-2 shadow-2xl"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {SLOT_OPTIONS.map((o, i) => (
-                <button
-                  key={o.href}
-                  onClick={() => {
-                    setSlot(i);
-                    localStorage.setItem("nav-slot", String(i));
-                    setSlotOpen(false);
-                    router.push(o.href);
-                  }}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-semibold ${
-                    i === effSlot ? "bg-soft text-accent" : "text-ink-dim"
-                  }`}
-                >
-                  {o.icon}
-                  {o.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      <InsightsSheet open={aiOpen} onClose={() => setAiOpen(false)} />
-    </>
+        <button
+          aria-label={hideValues ? "Mostrar valores" : "Esconder valores"}
+          onClick={toggleHideValues}
+          className="pointer-events-auto h-12 w-12 rounded-full bg-card/95 backdrop-blur-xl border border-edge grid place-items-center text-ink-faint shadow-[0_12px_40px_-12px_rgba(0,0,0,0.6)]"
+        >
+          {hideValues ? <IconEyeOff size={19} /> : <IconEye size={19} />}
+        </button>
+      </div>
+    </nav>
   );
 }

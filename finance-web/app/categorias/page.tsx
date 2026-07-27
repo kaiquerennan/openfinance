@@ -118,7 +118,7 @@ export default function CategoriasPage() {
                       <Money value={c.total} cents={false} className="text-[16px]" />
                     </span>
                     <span className="w-28 flex items-center justify-end gap-2">
-                      <span className="relative h-2.5 w-16 rounded-full bg-[#e3e5ea] overflow-hidden">
+                      <span className="relative h-2.5 w-16 rounded-full bg-soft overflow-hidden">
                         {limit !== null && (
                           <span
                             className="absolute inset-y-0 left-0 rounded-full"

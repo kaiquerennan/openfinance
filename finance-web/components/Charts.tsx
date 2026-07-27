@@ -33,7 +33,7 @@ function TipBox({
   if (!active || !payload?.length) return null;
   const rows = payload.filter((p) => (p.value ?? 0) !== 0);
   return (
-    <div className="bg-white rounded-2xl shadow-xl px-3.5 py-2.5 text-xs">
+    <div className="bg-card border border-edge rounded-2xl shadow-xl px-3.5 py-2.5 text-xs">
       <div className="font-semibold text-ink mb-1">{label}</div>
       {rows.map((p, i) => (
         <div key={i} className="flex items-center gap-1.5 text-ink-dim">
@@ -332,6 +332,94 @@ export function BudgetPace({
         style={{ left: `${badgeLeft}%`, top: `${badgeTop}%` }}
       >
         {maskAmount(brl(Math.abs(diff)), hide)} {over ? "acima" : "abaixo"}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Chart da página Projeção: barras-pílula do resultado líquido de cada mês
+ * (verde/vermelho pelo sinal) + linha azul do saldo projetado acumulado.
+ */
+export function ProjectionChart({
+  points,
+}: {
+  points: { label: string; resultado: number; saldo: number }[];
+}) {
+  const W = 360;
+  const H = 220;
+  const padTop = 10;
+  const padBottom = 24;
+  const plotH = H - padTop - padBottom;
+
+  const all = points.flatMap((p) => [p.resultado, p.saldo]);
+  const max = Math.max(0, ...all);
+  const min = Math.min(0, ...all);
+  const span = Math.max(max - min, 1);
+  const y = (v: number) => padTop + plotH - ((v - min) / span) * plotH;
+  const zeroY = y(0);
+
+  const slotW = W / points.length;
+  const barW = Math.min(34, slotW * 0.42);
+
+  const linePts = points.map((p, i) => {
+    const cx = slotW * i + slotW / 2;
+    return `${cx.toFixed(1)},${y(p.saldo).toFixed(1)}`;
+  });
+
+  return (
+    <div>
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" aria-hidden>
+        <line x1={0} y1={zeroY} x2={W} y2={zeroY} stroke="var(--color-edge)" strokeWidth="1" />
+        {points.map((p, i) => {
+          const cx = slotW * i + slotW / 2;
+          const top = Math.min(y(p.resultado), zeroY);
+          const h = Math.max(Math.abs(y(p.resultado) - zeroY), 3);
+          return (
+            <rect
+              key={i}
+              x={cx - barW / 2}
+              y={top}
+              width={barW}
+              height={h}
+              rx={Math.min(8, barW / 2)}
+              fill={p.resultado >= 0 ? "var(--color-pos)" : "var(--color-line)"}
+              opacity={i === 0 ? 1 : 0.55}
+            />
+          );
+        })}
+        <polyline
+          points={linePts.join(" ")}
+          fill="none"
+          stroke="var(--color-accent)"
+          strokeWidth="2.4"
+          strokeLinejoin="round"
+          strokeLinecap="round"
+        />
+        {points.map((p, i) => {
+          const cx = slotW * i + slotW / 2;
+          return <circle key={i} cx={cx} cy={y(p.saldo)} r="3.5" fill="var(--color-accent)" />;
+        })}
+        {points.map((p, i) => (
+          <text
+            key={i}
+            x={slotW * i + slotW / 2}
+            y={H - 6}
+            fill={AXIS}
+            fontSize={12}
+            textAnchor="middle"
+          >
+            {p.label}
+          </text>
+        ))}
+      </svg>
+      <div className="flex items-center gap-4 mt-1 text-xs text-ink-dim">
+        <span className="flex items-center gap-1.5">
+          <span className="h-2 w-2 rounded-full bg-pos" /> Resultado líquido
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="h-2 w-2 rounded-full bg-accent" /> Saldo projetado
+        </span>
       </div>
     </div>
   );

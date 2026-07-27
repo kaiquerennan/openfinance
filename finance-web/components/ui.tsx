@@ -2,10 +2,10 @@
 
 // Blocos de UI do design mobile (tema claro, estilo do app de referência).
 
-import React from "react";
+import React, { useState } from "react";
 import { catColor, catMeta } from "@/lib/categories";
 import { maskAmount, useHideValues } from "@/lib/privacy";
-import { IconChevronLeft, IconChevronRight } from "@/components/icons";
+import { IconChevronLeft, IconChevronRight, IconSparkle } from "@/components/icons";
 
 export function Card({
   children,
@@ -65,8 +65,8 @@ export function Chip({ category }: { category: string | null | undefined }) {
     <span
       className="chip"
       style={{
-        background: `color-mix(in srgb, ${color} 13%, white)`,
-        color: `color-mix(in srgb, ${color} 80%, #333)`,
+        background: `color-mix(in srgb, ${color} 22%, black)`,
+        color: `color-mix(in srgb, ${color} 65%, white)`,
       }}
     >
       <span className="text-[11px]">{meta.icon}</span>
@@ -157,7 +157,7 @@ export function PeriodTabs({
     { m: 12, label: "1 Ano" },
   ];
   return (
-    <div className="bg-white rounded-full p-1.5 flex items-center gap-1 shadow-[0_10px_30px_-10px_rgba(15,30,80,0.35)]">
+    <div className="bg-card border border-edge rounded-full p-1.5 flex items-center gap-1 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.5)]">
       {opts.map((o) => (
         <button
           key={o.m}
@@ -170,6 +170,39 @@ export function PeriodTabs({
         </button>
       ))}
     </div>
+  );
+}
+
+/** Cartão azul "Dica do Visor": alterna entre várias dicas (toque pra avançar). */
+export function TipCarousel({ tips }: { tips: string[] }) {
+  const [i, setI] = useState(0);
+  if (tips.length === 0) return null;
+  const idx = i % tips.length;
+  return (
+    <button
+      onClick={() => setI((n) => n + 1)}
+      className="blue-hero w-full text-left px-5 py-4 text-white"
+    >
+      <div className="flex items-center gap-2.5">
+        <span className="h-8 w-8 rounded-xl bg-white/20 grid place-items-center shrink-0">
+          <IconSparkle size={16} />
+        </span>
+        <span className="text-[15px] font-semibold">Dica do Visor</span>
+      </div>
+      <p className="text-[15px] leading-snug mt-3 min-h-10">{tips[idx]}</p>
+      {tips.length > 1 && (
+        <div className="flex items-center gap-1.5 mt-3">
+          {tips.map((_, d) => (
+            <span
+              key={d}
+              className={`h-1.5 rounded-full transition-all ${
+                d === idx ? "w-5 bg-white" : "w-1.5 bg-white/40"
+              }`}
+            />
+          ))}
+        </div>
+      )}
+    </button>
   );
 }
 

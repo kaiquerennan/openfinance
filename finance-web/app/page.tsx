@@ -33,8 +33,9 @@ import {
   ErrorCard,
   LoadingCard,
   Money,
+  TipCarousel,
 } from "@/components/ui";
-import { IconChevronRight, IconSparkle } from "@/components/icons";
+import { IconArrows, IconChevronRight, IconFlow, IconPie } from "@/components/icons";
 
 function subEmoji(desc: string) {
   const d = desc.toLowerCase();
@@ -175,48 +176,67 @@ export default function HomePage() {
           </div>
         )}
 
-        {budget !== null && (
-          <div className="mt-4 bg-white/15 border border-white/10 rounded-3xl px-5 py-4 flex items-center gap-3 backdrop-blur">
-            <IconSparkle size={20} />
-            <p className="text-[15px] leading-snug">
-              {(over ?? 0) > 0 ? (
-                <>
-                  Você ultrapassou o limite mensal em{" "}
-                  <b><Amount>{brl0(Math.abs(over ?? 0))}</Amount></b>.
-                </>
-              ) : (
-                <>
-                  Você ainda tem <b><Amount>{brl0(Math.abs(over ?? 0))}</Amount></b> do limite
-                  deste mês.
-                </>
-              )}
-            </p>
-          </div>
-        )}
       </BlueHeader>
 
       <div className="px-4 mt-5 space-y-4">
         {error && <ErrorCard message={error} />}
 
-        {/* Receitas / Despesas / Resultado */}
-        <div className="grid grid-cols-3 gap-2 px-2">
+        <TipCarousel
+          tips={[
+            ...(budget !== null
+              ? [
+                  (over ?? 0) > 0
+                    ? `Você ultrapassou R$ ${brl0(Math.abs(over ?? 0))} do limite mensal.`
+                    : `Você ainda tem R$ ${brl0(Math.abs(over ?? 0))} do limite deste mês.`,
+                ]
+              : []),
+            ...(report?.narrative.insightsAutomaticos ?? []),
+            ...(report?.narrative.recomendacoes ?? []),
+          ].filter(Boolean)}
+        />
+
+        {/* Atalhos rápidos */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 -mx-1 px-1">
           {[
-            { label: "Receitas", value: income, bar: "bg-pos" },
-            { label: "Despesas", value: spent, bar: "bg-neg" },
-            { label: "Resultado", value: income - spent, bar: "bg-[#38bdf8]", signed: true },
-          ].map((s) => (
-            <div key={s.label} className="flex gap-2.5">
-              <span className={`w-1 rounded-full ${s.bar}`} />
-              <div>
-                <div className="text-sm text-ink-dim">{s.label}</div>
-                <div className="text-lg font-bold text-ink whitespace-nowrap">
-                  {s.signed && s.value < 0 ? "-" : ""}
-                  <Amount>{brl0(Math.abs(s.value))}</Amount>
-                </div>
-              </div>
-            </div>
+            { href: "/analises", label: "Fluxo de Caixa", icon: <IconFlow size={16} /> },
+            { href: "/categorias", label: "Categorias", icon: <IconPie size={16} /> },
+            { href: "/cartoes", label: "Faturas", icon: <IconArrows size={16} /> },
+          ].map((s, i) => (
+            <button
+              key={s.href}
+              onClick={() => router.push(s.href)}
+              className={`shrink-0 flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold ${
+                i === 0 ? "bg-accent text-white" : "bg-soft text-ink-dim"
+              }`}
+            >
+              {s.icon}
+              {s.label}
+            </button>
           ))}
         </div>
+
+        {/* Resultado parcial (Receitas / Despesas / Resultado) */}
+        <Card className="cursor-pointer" onClick={() => router.push("/analises")}>
+          <CardHeader title="Resultado parcial" onOpen={() => router.push("/analises")} />
+          <div className="grid grid-cols-3 gap-2 pt-1">
+            {[
+              { label: "Receitas", value: income, bar: "bg-pos" },
+              { label: "Despesas", value: spent, bar: "bg-neg" },
+              { label: "Resultado", value: income - spent, bar: "bg-[#38bdf8]", signed: true },
+            ].map((s) => (
+              <div key={s.label} className="flex gap-2.5">
+                <span className={`w-1 rounded-full ${s.bar}`} />
+                <div>
+                  <div className="text-sm text-ink-dim">{s.label}</div>
+                  <div className="text-lg font-bold text-ink whitespace-nowrap">
+                    {s.signed && s.value < 0 ? "-" : ""}
+                    <Amount>{brl0(Math.abs(s.value))}</Amount>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
 
         {loading ? (
           <LoadingCard text="Carregando suas finanças…" />
@@ -232,7 +252,7 @@ export default function HomePage() {
                   {upcoming.slice(0, 2).map((s, i) => (
                     <span
                       key={i}
-                      className="h-11 w-11 rounded-2xl bg-soft grid place-items-center text-lg ring-2 ring-white"
+                      className="h-11 w-11 rounded-2xl bg-soft grid place-items-center text-lg ring-2 ring-card"
                     >
                       {subEmoji(s.description)}
                     </span>

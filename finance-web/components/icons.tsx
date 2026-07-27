@@ -229,6 +229,27 @@ export const IconEye = ({ size = 18 }: { size?: number }) => (
   </Svg>
 );
 
+export const IconMic = ({ size = 16 }: { size?: number }) => (
+  <Svg size={size}>
+    <rect x="9" y="2.5" width="6" height="11" rx="3" />
+    <path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7" />
+  </Svg>
+);
+
+export const IconSend = ({ size = 18 }: { size?: number }) => (
+  <Svg size={size} filled>
+    <path d="M12 19V6M6 11.5 12 5l6 6.5" stroke="currentColor" strokeWidth="2.4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+  </Svg>
+);
+
+export const IconInfo = ({ size = 14 }: { size?: number }) => (
+  <Svg size={size}>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M12 11v5.5" strokeWidth="2" />
+    <circle cx="12" cy="8" r="1.1" fill="currentColor" stroke="none" />
+  </Svg>
+);
+
 export const IconEyeOff = ({ size = 18 }: { size?: number }) => (
   <Svg size={size}>
     <path d="M3 3l18 18" />

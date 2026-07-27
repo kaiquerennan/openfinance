@@ -337,7 +337,7 @@ function TransacoesInner() {
                         <Money value={c.total} cents={false} className="text-[16px]" />
                       </span>
                       <span className="w-28 flex items-center justify-end gap-2">
-                        <span className="relative h-2.5 w-16 rounded-full bg-[#e3e5ea] overflow-hidden">
+                        <span className="relative h-2.5 w-16 rounded-full bg-soft overflow-hidden">
                           {limit !== null && (
                             <span
                               className="absolute inset-y-0 left-0 rounded-full"
@@ -376,7 +376,7 @@ function TransacoesInner() {
         {tab === "lancamentos" && (
           <div className="rise space-y-4">
             <div className="flex gap-2.5">
-              <div className="flex-1 flex items-center gap-2.5 bg-[#e9ebef] rounded-2xl px-4">
+              <div className="flex-1 flex items-center gap-2.5 bg-soft rounded-2xl px-4">
                 <span className="text-ink-faint">
                   <IconSearch size={17} />
                 </span>
@@ -391,7 +391,7 @@ function TransacoesInner() {
                 aria-label="Filtros"
                 onClick={() => setFilterOpen(true)}
                 className={`h-12 w-12 rounded-2xl grid place-items-center shrink-0 ${
-                  fCategory || fAccount ? "bg-accent text-white" : "bg-[#e9ebef] text-ink-dim"
+                  fCategory || fAccount ? "bg-accent text-white" : "bg-soft text-ink-dim"
                 }`}
               >
                 <IconSliders size={18} />

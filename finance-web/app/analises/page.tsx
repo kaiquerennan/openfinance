@@ -173,14 +173,14 @@ function AnalisesInner() {
                   />
                 </div>
                 <div className="space-y-2.5 lg:col-span-1">
-                  <div className="flex items-center justify-between rounded-2xl bg-[#d9f3e1] px-4 py-3.5">
+                  <div className="flex items-center justify-between rounded-2xl bg-[#0f2a1a] px-4 py-3.5">
                     <span className="flex items-center gap-2.5 font-semibold text-ink">
                       <span className="h-2.5 w-2.5 rounded-full bg-pos" />
                       Receitas
                     </span>
                     <Money value={totalIncome} cents={false} className="text-[17px]" />
                   </div>
-                  <div className="flex items-center justify-between rounded-2xl bg-[#fbdfe0] px-4 py-3.5">
+                  <div className="flex items-center justify-between rounded-2xl bg-[#3a1416] px-4 py-3.5">
                     <span className="flex items-center gap-2.5 font-semibold text-ink">
                       <span className="h-2.5 w-2.5 rounded-full bg-neg" />
                       Gastos
@@ -240,7 +240,7 @@ function AnalisesInner() {
                     height={260}
                   />
                 </div>
-                <div className="flex items-center justify-between rounded-2xl bg-[#d9f3e1] px-4 py-3.5 lg:col-span-1 lg:self-start">
+                <div className="flex items-center justify-between rounded-2xl bg-[#0f2a1a] px-4 py-3.5 lg:col-span-1 lg:self-start">
                   <span className="flex items-center gap-2.5 font-semibold text-ink">
                     <span className="h-2.5 w-2.5 rounded-full bg-pos" />
                     Receitas
