@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   api,
   brl0,
+  DbInvestment,
   DbTransaction,
   MONTH_LABELS,
   monthRange,
@@ -21,6 +22,8 @@ import { Amount, Card, EmptyState, ErrorCard, LoadingCard } from "@/components/u
 export default function InvestimentosPage() {
   const version = useDataVersion();
   const [byMonth, setByMonth] = useState<Map<string, DbTransaction[]> | null>(null);
+  const [investments, setInvestments] = useState<DbInvestment[] | null>(null);
+  const [investmentsTotal, setInvestmentsTotal] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -36,6 +39,13 @@ export default function InvestimentosPage() {
         setByMonth(new Map(ms.map((m, i) => [m, pages[i].transactions])));
       } catch (e) {
         setError((e as Error).message);
+      }
+      try {
+        const { total, investments } = await api.investments();
+        setInvestmentsTotal(total);
+        setInvestments(investments);
+      } catch {
+        // Conector pode nao expor investimentos — segue so com os aportes.
       }
     })();
   }, [version]);
@@ -60,21 +70,48 @@ export default function InvestimentosPage() {
   );
 
   const totalInvested = monthly.reduce((s, m) => s + Math.max(m.value, 0), 0);
+  const hasRealBalance = investments !== null && investments.length > 0;
 
   return (
     <div>
       <BlueHeader title="Investimentos">
         <div className="mt-4">
-          <div className="text-white/70 text-[15px]">Aportes em 12 meses</div>
-          <div className="text-5xl font-semibold mt-1"><Amount>{brl0(totalInvested)}</Amount></div>
+          <div className="text-white/70 text-[15px]">
+            {hasRealBalance ? "Saldo atual investido" : "Aportes em 12 meses"}
+          </div>
+          <div className="text-5xl font-semibold mt-1">
+            <Amount>{brl0(hasRealBalance ? investmentsTotal : totalInvested)}</Amount>
+          </div>
           <div className="text-white/50 mt-2 text-[15px]">
-            {all.length} movimentações
+            {hasRealBalance
+              ? `${investments!.length} posições · saldo reportado pela instituição`
+              : `${all.length} movimentações`}
           </div>
         </div>
       </BlueHeader>
 
       <div className="px-4 mt-5 space-y-4">
         {error && <ErrorCard message={error} />}
+        {hasRealBalance && (
+          <Card className="rise">
+            <div className="text-sm font-semibold text-ink-dim mb-3">
+              Posições
+            </div>
+            <div className="divide-y divide-black/5">
+              {investments!.map((inv) => (
+                <div key={inv.id} className="flex items-center justify-between py-2.5">
+                  <div className="min-w-0 pr-3">
+                    <div className="text-[15px] truncate">{inv.name ?? inv.type ?? "Posição"}</div>
+                    <div className="text-[13px] text-ink-dim">{inv.type ?? "-"}</div>
+                  </div>
+                  <div className="text-[15px] font-medium shrink-0">
+                    <Amount>{brl0(Number(inv.balance ?? 0))}</Amount>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+        )}
         {!byMonth ? (
           <LoadingCard />
         ) : all.length === 0 ? (

@@ -88,7 +88,14 @@ export interface AnalyticsData {
 
   health: HealthScore;
 
-  movements: { transfers: number; investmentsNet: number; debt: number; fees: number };
+  movements: {
+    transfers: number;
+    investmentsNet: number;
+    debt: number;
+    fees: number;
+    /** Apostas - saques da mesma casa: positivo = ganhou liquido, negativo = perdeu liquido, null = sem atividade de apostas no mes. */
+    gamblingNet: number | null;
+  };
 }
 
 /** Saida narrativa estilo consultor (gerada por regras; futura IA pluga aqui). */

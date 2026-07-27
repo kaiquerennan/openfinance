@@ -164,6 +164,8 @@ export class RuleBasedNarrator implements InsightNarrator {
       out.push(`Seu consumo cresceu ${s.changeVsPrevPct}% em um mês — ritmo acelerado.`);
     if (d.movements.debt > 0)
       out.push(`Você teve ${brl(d.movements.debt)} em dívidas/financiamento no mês.`);
+    if (d.movements.gamblingNet != null && d.movements.gamblingNet < 0)
+      out.push(`Resultado líquido em apostas no mês: perda de ${brl(Math.abs(d.movements.gamblingNet))} (descontando o que voltou da mesma casa).`);
     const t3 = d.trends.find((t) => t.window === '3m')!;
     if (t3.savingsRatePct < 0)
       out.push('Nos últimos 3 meses você gastou mais do que recebeu (poupança negativa).');
@@ -241,6 +243,8 @@ export class RuleBasedNarrator implements InsightNarrator {
       out.push(`Você terminou o mês positivo, poupando ${brl(d.summary.savings)}.`);
     if (d.movements.investmentsNet > 0)
       out.push(`Você aplicou ${brl(d.movements.investmentsNet)} em investimentos.`);
+    if (d.movements.gamblingNet != null && d.movements.gamblingNet >= 0)
+      out.push(`Resultado líquido em apostas no mês: ganho de ${brl(d.movements.gamblingNet)} (você recuperou mais do que apostou).`);
     const t3 = d.trends.find((t) => t.window === '3m')!;
     const t6 = d.trends.find((t) => t.window === '6m')!;
     if (t3.savingsRatePct > t6.savingsRatePct)

@@ -48,11 +48,96 @@ function normalizeDesc(s: string): string {
     .trim();
 }
 
+/** Extrai a contraparte de "Transferencia enviada|Empresa X" -> "empresa x". */
+function counterpartyKey(desc: string): string {
+  const idx = desc.indexOf('|');
+  return normalizeDesc(idx >= 0 ? desc.slice(idx + 1) : desc);
+}
+
+function gamblingCounterpartiesOf(all: Tx[]): Set<string> {
+  return new Set(
+    all
+      .filter((t) => t.category.toLowerCase() === 'gambling')
+      .map((t) => counterpartyKey(t.description)),
+  );
+}
+
+/** Resultado liquido de apostas no periodo: recuperado - apostado (positivo = ganhou, negativo = perdeu). Null se nao houve apostas. */
+function computeGamblingNet(monthTx: Tx[], gamblingCounterparties: Set<string>): number | null {
+  if (!gamblingCounterparties.size) return null;
+  const bet = sum(
+    monthTx
+      .filter((t) => t.category.toLowerCase() === 'gambling' && t.amount < 0)
+      .map((t) => Math.abs(t.amount)),
+  );
+  if (bet === 0) return null;
+  const recovered = sum(
+    monthTx
+      .filter((t) => t.amount > 0 && t.category.toLowerCase() !== 'gambling')
+      .filter((t) => gamblingCounterparties.has(counterpartyKey(t.description)))
+      .map((t) => t.amount),
+  );
+  return round2(recovered - bet);
+}
+
+/**
+ * A Pluggy categoriza a aposta (saida) como "Gambling", mas o saque/retorno
+ * da mesma casa costuma voltar como uma transferencia generica -- sem tratar
+ * isso, a analise conta 100% do valor apostado como perda e ignora o que
+ * voltou. Aqui detectamos entradas vindas da mesma contraparte de uma aposta
+ * e abatemos esse valor direto das transacoes de aposta do mes, na fonte --
+ * assim categorias, tendencias e indice de saude ja saem com o valor liquido
+ * sem precisar mexer em mais nada.
+ */
+function netGamblingCashouts(all: Tx[]): Tx[] {
+  const gamblingCounterparties = gamblingCounterpartiesOf(all);
+  if (!gamblingCounterparties.size) return all;
+
+  const adjusted = all.map((t) => ({ ...t }));
+  const byMonth = new Map<string, Tx[]>();
+  for (const t of adjusted) {
+    const m = monthKey(t.date);
+    const arr = byMonth.get(m) ?? [];
+    arr.push(t);
+    byMonth.set(m, arr);
+  }
+
+  for (const monthTxs of byMonth.values()) {
+    const bets = monthTxs.filter((t) => t.category.toLowerCase() === 'gambling' && t.amount < 0);
+    if (!bets.length) continue;
+    const recovered = round2(
+      sum(
+        monthTxs
+          .filter((t) => t.amount > 0 && t.category.toLowerCase() !== 'gambling')
+          .filter((t) => gamblingCounterparties.has(counterpartyKey(t.description)))
+          .map((t) => t.amount),
+      ),
+    );
+    if (recovered <= 0) continue;
+
+    const totalBet = sum(bets.map((t) => Math.abs(t.amount)));
+    let remaining = Math.min(recovered, totalBet);
+    for (const bet of bets.sort((a, b) => a.amount - b.amount)) {
+      if (remaining <= 0) break;
+      const cut = Math.min(Math.abs(bet.amount), remaining);
+      bet.amount = round2(bet.amount + cut); // amount e negativo; +cut aproxima de 0
+      remaining = round2(remaining - cut);
+    }
+  }
+
+  return adjusted;
+}
+
 // ---------------------------------------------------------------------------
 // Calculo principal
 // ---------------------------------------------------------------------------
 
-export function computeAnalytics(all: Tx[], targetMonth: string): AnalyticsData {
+export function computeAnalytics(rawAll: Tx[], targetMonth: string): AnalyticsData {
+  const all = netGamblingCashouts(rawAll);
+  const gamblingNet = computeGamblingNet(
+    rawAll.filter((t) => inMonth(t, targetMonth)),
+    gamblingCounterpartiesOf(rawAll),
+  );
   const prevMonth = addMonths(targetMonth, -1);
   const bounds = monthBounds(targetMonth);
   const thisM = all.filter((t) => inMonth(t, targetMonth));
@@ -115,6 +200,7 @@ export function computeAnalytics(all: Tx[], targetMonth: string): AnalyticsData 
     ), // saidas - entradas (positivo = aplicou liquido)
     debt: debtOut,
     fees: feesOut,
+    gamblingNet,
   };
 
   // --- Indice de saude ---

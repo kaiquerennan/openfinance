@@ -26,6 +26,19 @@ export interface PluggyAccountFull {
   currencyCode?: string;
 }
 
+export interface PluggyInvestment {
+  id: string;
+  itemId: string;
+  type?: string;
+  subtype?: string;
+  name?: string;
+  balance?: number;
+  amount?: number;
+  currencyCode?: string;
+  status?: string;
+  date?: string;
+}
+
 export interface PluggyTransaction {
   id: string;
   accountId: string;

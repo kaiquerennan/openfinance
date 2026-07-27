@@ -5,6 +5,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { PluggyService, PluggyAccount } from '../pluggy/pluggy.service';
 import {
   PluggyAccountFull,
+  PluggyInvestment,
   PluggyItem,
   PluggyTransaction,
 } from '../pluggy/pluggy.types';
@@ -24,6 +25,7 @@ export interface ItemSyncResult {
   status: string;
   accounts: AccountSyncResult[];
   totalTransactions: number;
+  investmentsSynced: number;
 }
 
 @Injectable()
@@ -75,8 +77,22 @@ export class SyncService {
       (sum, a) => sum + a.transactionsSynced,
       0,
     );
+
+    let investmentsSynced = 0;
+    try {
+      const investmentsResp = await this.pluggy.getInvestments(itemId);
+      const investments = investmentsResp.results ?? [];
+      await this.upsertInvestments(itemId, investments);
+      investmentsSynced = investments.length;
+    } catch (err) {
+      // Nem todo conector expoe investimentos; nao deve derrubar o sync do item.
+      this.logger.warn(
+        `Sem investimentos para o item ${itemId}: ${(err as Error).message}`,
+      );
+    }
+
     this.logger.log(
-      `Sync do item ${itemId} concluido: ${accounts.length} contas, ${totalTransactions} transacoes.`,
+      `Sync do item ${itemId} concluido: ${accounts.length} contas, ${totalTransactions} transacoes, ${investmentsSynced} investimentos.`,
     );
 
     return {
@@ -85,6 +101,7 @@ export class SyncService {
       status: item.status,
       accounts: accountResults,
       totalTransactions,
+      investmentsSynced,
     };
   }
 
@@ -161,6 +178,30 @@ export class SyncService {
       create: { id: acc.id, ...data },
       update: data,
     });
+  }
+
+  private async upsertInvestments(
+    itemId: string,
+    investments: PluggyInvestment[],
+  ): Promise<void> {
+    for (const inv of investments) {
+      const data = {
+        itemId,
+        type: inv.type ?? null,
+        subtype: inv.subtype ?? null,
+        name: inv.name ?? null,
+        balance: inv.balance != null ? new Prisma.Decimal(inv.balance) : null,
+        amount: inv.amount != null ? new Prisma.Decimal(inv.amount) : null,
+        currencyCode: inv.currencyCode ?? null,
+        status: inv.status ?? null,
+        date: inv.date ? new Date(inv.date) : null,
+      };
+      await this.prisma.investment.upsert({
+        where: { id: inv.id },
+        create: { id: inv.id, ...data },
+        update: data,
+      });
+    }
   }
 
   private async upsertTransactions(

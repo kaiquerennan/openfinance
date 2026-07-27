@@ -102,6 +102,22 @@ export class SyncController {
     });
   }
 
+  /**
+   * GET /pluggy/db/investments — posicoes de investimento persistidas
+   * (saldo real reportado pela instituicao, com rendimento ja embutido).
+   * Considera "ativa" toda posicao cujo status nao seja de resgate total.
+   */
+  @Get('db/investments')
+  async dbInvestments() {
+    const investments = await this.prisma.investment.findMany({
+      include: { item: { select: { connectorName: true, lastSyncedAt: true } } },
+      orderBy: { balance: 'desc' },
+    });
+    const active = investments.filter((i) => i.status !== 'TOTAL_WITHDRAWAL');
+    const total = active.reduce((sum, i) => sum + Number(i.balance ?? 0), 0);
+    return { total, investments: active };
+  }
+
   /** GET /pluggy/db/transactions — transacoes persistidas, com filtros opcionais. */
   @Get('db/transactions')
   async dbTransactions(

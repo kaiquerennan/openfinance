@@ -70,7 +70,13 @@ export interface AnalyticsData {
   subscriptions: { items: Subscription[]; monthlyTotal: number; annualTotal: number };
   waste: { label: string; total: number; count: number; note: string }[];
   health: HealthScore;
-  movements: { transfers: number; investmentsNet: number; debt: number; fees: number };
+  movements: {
+    transfers: number;
+    investmentsNet: number;
+    debt: number;
+    fees: number;
+    gamblingNet: number | null;
+  };
 }
 
 export interface AnalyticsNarrative {
@@ -116,6 +122,25 @@ export interface DbAccount {
   currencyCode: string | null;
   item: { connectorName: string; lastSyncedAt: string };
   _count: { transactions: number };
+}
+
+export interface DbInvestment {
+  id: string;
+  itemId: string;
+  type: string | null; // FIXED_INCOME | MUTUAL_FUND | EQUITY | ...
+  subtype: string | null;
+  name: string | null;
+  balance: string | null; // Decimal serializado — saldo real, com rendimento
+  amount: string | null;
+  currencyCode: string | null;
+  status: string | null; // ACTIVE | TOTAL_WITHDRAWAL | ...
+  date: string | null;
+  item: { connectorName: string; lastSyncedAt: string };
+}
+
+export interface InvestmentsResponse {
+  total: number;
+  investments: DbInvestment[];
 }
 
 export interface DbTransaction {
@@ -274,6 +299,7 @@ export const api = {
     post<{ answer: string }>('/assistant/ask', { question, month }),
   items: () => get<DbItem[]>('/pluggy/items'),
   accounts: () => get<DbAccount[]>('/pluggy/db/accounts'),
+  investments: () => get<InvestmentsResponse>('/pluggy/db/investments'),
   transactions: (q: TxQuery = {}) =>
     get<TransactionsPage>(`/pluggy/db/transactions${qs(q as Record<string, string | number | undefined>)}`),
   syncItem: (id: string) => post<SyncResult>(`/pluggy/items/${id}/sync`),

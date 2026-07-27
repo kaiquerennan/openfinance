@@ -18,9 +18,10 @@ model Item {
   pluggyUpdatedAt DateTime?
   lastSyncedAt    DateTime  @default(now())
 
-  accounts  Account[]
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  accounts    Account[]
+  investments Investment[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
 }
 
 /// Uma conta (corrente, poupanca, cartao) pertencente a um Item.
@@ -39,6 +40,26 @@ model Account {
   transactions Transaction[]
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
+
+  @@index([itemId])
+}
+
+/// Uma posicao de investimento (CDB, fundo, acao, etc) pertencente a um Item.
+model Investment {
+  id           String   @id // id do Investment na Pluggy
+  itemId       String
+  item         Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  type         String? // FIXED_INCOME | MUTUAL_FUND | EQUITY | ...
+  subtype      String?
+  name         String?
+  balance      Decimal? @db.Decimal(18, 2)
+  amount       Decimal? @db.Decimal(18, 2)
+  currencyCode String?
+  status       String? // ACTIVE | TOTAL_WITHDRAWAL | ...
+  date         DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([itemId])
 }

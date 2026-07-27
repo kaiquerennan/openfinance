@@ -13,6 +13,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import axios, { AxiosError, AxiosInstance, AxiosRequestConfig } from 'axios';
 import {
+  PluggyInvestment,
   PluggyItem,
   PluggyTransaction,
   PluggyV2Page,
@@ -193,6 +194,17 @@ export class PluggyService implements OnModuleInit {
     return this.request({
       method: 'GET',
       url: '/accounts',
+      params: { itemId },
+    });
+  }
+
+  /** Lista as posicoes de investimento (CDB, fundos, acoes, etc) de um Item. */
+  async getInvestments(
+    itemId: string,
+  ): Promise<{ results: PluggyInvestment[] }> {
+    return this.request({
+      method: 'GET',
+      url: '/investments',
       params: { itemId },
     });
   }

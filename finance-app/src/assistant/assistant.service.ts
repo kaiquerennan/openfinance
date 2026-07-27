@@ -97,7 +97,11 @@ export class AssistantService {
       `Metas de poupança cadastradas pelo usuário (JSON):\n${JSON.stringify(goalsSummary)}\n\n` +
       `Limites de gasto (orçamentos) definidos (JSON):\n${JSON.stringify(budgets)}\n\n` +
       `Histórico resumido de outros meses (JSON):\n${JSON.stringify(history)}\n\n` +
-      `Dados completos do mês ${targetMonth} (JSON):\n${JSON.stringify(currentReport.data)}`;
+      `Dados completos do mês ${targetMonth} (JSON):\n${JSON.stringify(currentReport.data)}\n\n` +
+      'Frases já interpretadas por um consultor de regras sobre o mês acima ' +
+      '(use como referência de interpretação correta dos números, especialmente ' +
+      'sinais de ganho/perda em campos como "gamblingNet"):\n' +
+      `${JSON.stringify(currentReport.narrative)}`;
 
     try {
       const response = await this.getClient().models.generateContent({
