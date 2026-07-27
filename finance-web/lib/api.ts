@@ -195,12 +195,10 @@ export interface TransactionsPage {
   transactions: DbTransaction[];
 }
 
-export interface SyncResult {
-  itemId: string;
-  connector: string;
-  status: string;
-  accounts: { accountId: string; name?: string; transactionsSynced: number }[];
-  totalTransactions: number;
+/** O sync agora roda em segundo plano no servidor; a resposta e so um ack. */
+export interface SyncStarted {
+  started: true;
+  itemId?: string;
 }
 
 export interface Budget {
@@ -302,8 +300,8 @@ export const api = {
   investments: () => get<InvestmentsResponse>('/pluggy/db/investments'),
   transactions: (q: TxQuery = {}) =>
     get<TransactionsPage>(`/pluggy/db/transactions${qs(q as Record<string, string | number | undefined>)}`),
-  syncItem: (id: string) => post<SyncResult>(`/pluggy/items/${id}/sync`),
-  syncAll: () => post<SyncResult[]>('/pluggy/sync'),
+  syncItem: (id: string) => post<SyncStarted>(`/pluggy/items/${id}/sync`),
+  syncAll: () => post<SyncStarted>('/pluggy/sync'),
   createConnectToken: () =>
     post<{ accessToken: string }>('/pluggy/connect-token'),
 

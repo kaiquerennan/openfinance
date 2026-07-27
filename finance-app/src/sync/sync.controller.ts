@@ -36,20 +36,63 @@ export class SyncController {
     private readonly config: ConfigService,
   ) {}
 
-  /** POST /pluggy/items/:itemId/sync — puxa item+contas+transacoes pro Postgres. */
+  /**
+   * POST /pluggy/items/:itemId/sync — puxa item+contas+transacoes+investimentos
+   * pro Postgres. Responde na hora e roda em segundo plano: um sync completo
+   * pode levar bem mais que o timeout do proxy da Vercel, entao nao da pra
+   * esperar o resultado na mesma requisicao.
+   */
   @Post('items/:itemId/sync')
+  @HttpCode(202)
   syncItem(
     @Param('itemId') itemId: string,
     @Query('from') from?: string,
     @Query('to') to?: string,
   ) {
-    return this.sync.syncItem(itemId, from, to);
+    this.sync.syncItem(itemId, from, to).catch((err) => {
+      this.logger.error(
+        `Falha ao sincronizar item ${itemId}: ${(err as Error).message}`,
+      );
+    });
+    return { started: true, itemId };
   }
 
-  /** POST /pluggy/sync — sincroniza todos os Items de uma vez. */
+  /**
+   * POST /pluggy/sync — sincroniza todos os Items de uma vez, em segundo
+   * plano (mesma razao do endpoint acima).
+   */
   @Post('sync')
+  @HttpCode(202)
   syncAll(@Query('from') from?: string, @Query('to') to?: string) {
-    return this.sync.syncAll(from, to);
+    this.sync.syncAll(from, to).catch((err) => {
+      this.logger.error(`Falha no sync geral: ${(err as Error).message}`);
+    });
+    return { started: true };
+  }
+
+  /**
+   * POST /pluggy/sync/trigger — mesma coisa que POST /pluggy/sync, mas
+   * publica (sem cookie de sessao) e protegida por um segredo proprio
+   * (SYNC_TRIGGER_SECRET, header X-Sync-Secret). Feita pra ser chamada por
+   * um agendador externo (ex.: GitHub Actions), ja que no plano free do
+   * Render o processo dorme e o @Cron interno para de disparar.
+   */
+  @Public()
+  @Post('sync/trigger')
+  @HttpCode(202)
+  syncTrigger(@Headers('x-sync-secret') secretHeader?: string) {
+    const expectedSecret = this.config.get<string>('SYNC_TRIGGER_SECRET');
+    if (!expectedSecret) {
+      throw new UnauthorizedException('SYNC_TRIGGER_SECRET nao configurado no servidor');
+    }
+    if (secretHeader !== expectedSecret) {
+      throw new UnauthorizedException('Segredo invalido');
+    }
+    this.logger.log('Sync disparado via /pluggy/sync/trigger (agendador externo)');
+    this.sync.syncAll().catch((err) => {
+      this.logger.error(`Falha no sync via trigger externo: ${(err as Error).message}`);
+    });
+    return { started: true };
   }
 
   /**

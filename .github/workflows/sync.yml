@@ -1,0 +1,20 @@
+name: Sincronizar Open Finance
+
+# O backend roda no plano free do Render, que derruba o processo apos ~15min
+# sem trafego — o @Cron interno de sync automatico so dispara se o processo
+# estiver de pe. Esse workflow acorda o servidor e dispara o sync de fora,
+# de forma confiavel, independente do processo estar dormindo ou nao.
+on:
+  schedule:
+    - cron: "0 */3 * * *"
+  workflow_dispatch: {}
+
+jobs:
+  trigger-sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Chamar /pluggy/sync/trigger
+        run: |
+          curl -sf -X POST "${{ secrets.BACKEND_URL }}/pluggy/sync/trigger" \
+            -H "X-Sync-Secret: ${{ secrets.SYNC_TRIGGER_SECRET }}" \
+            --max-time 60

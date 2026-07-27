@@ -76,10 +76,12 @@ export default function BlueHeader({
     setSyncing(true);
     setSyncMsg(null);
     try {
-      const res = await api.syncAll();
-      const total = res.reduce((s, r) => s + r.totalTransactions, 0);
-      setSyncMsg(`Sincronizado: ${total} transações atualizadas.`);
-      bumpData();
+      await api.syncAll();
+      setSyncMsg(
+        "Sincronização iniciada em segundo plano. Isso pode levar até 1 minuto — os dados atualizam sozinhos.",
+      );
+      // O sync roda no servidor; espera um pouco e atualiza a tela sozinha.
+      setTimeout(bumpData, 20_000);
     } catch (e) {
       setSyncMsg((e as Error).message);
     } finally {
@@ -96,9 +98,11 @@ export default function BlueHeader({
     setSyncing(true);
     setSyncMsg(null);
     try {
-      const res = await api.syncItem(itemId);
-      setSyncMsg(`Banco conectado: ${res.totalTransactions} transações sincronizadas.`);
-      bumpData();
+      await api.syncItem(itemId);
+      setSyncMsg(
+        "Banco conectado! A sincronização está rodando em segundo plano e os dados atualizam sozinhos em instantes.",
+      );
+      setTimeout(bumpData, 20_000);
     } catch (e) {
       setSyncMsg((e as Error).message);
     } finally {

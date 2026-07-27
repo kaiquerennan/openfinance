@@ -35,7 +35,7 @@ export default function ContasPage() {
     setSyncing(itemId);
     try {
       await api.syncItem(itemId);
-      bumpData();
+      setTimeout(bumpData, 20_000);
     } catch (e) {
       setError((e as Error).message);
     } finally {
