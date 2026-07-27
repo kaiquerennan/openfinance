@@ -7,6 +7,7 @@ import { SyncModule } from './sync/sync.module';
 import { ConnectModule } from './connect/connect.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { PlanningModule } from './planning/planning.module';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { PlanningModule } from './planning/planning.module';
       isGlobal: true,
     }),
     ScheduleModule.forRoot(),
+    AuthModule,
     PrismaModule,
     PluggyModule,
     SyncModule,

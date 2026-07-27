@@ -15,7 +15,7 @@ import {
 } from "@/lib/api";
 import { bumpData, useDataVersion } from "@/lib/bus";
 import BlueHeader from "@/components/Header";
-import { Card, ErrorCard, LoadingCard, Money } from "@/components/ui";
+import { Amount, Card, ErrorCard, LoadingCard, Money } from "@/components/ui";
 import { IconSync } from "@/components/icons";
 import ConnectBankButton from "@/components/ConnectBankButton";
 
@@ -52,7 +52,7 @@ export default function ContasPage() {
       <BlueHeader title="Contas">
         <div className="mt-4">
           <div className="text-white/70 text-[15px]">Saldo total</div>
-          <div className="text-5xl font-semibold mt-1">{brl0(total)}</div>
+          <div className="text-5xl font-semibold mt-1"><Amount>{brl0(total)}</Amount></div>
           <div className="text-white/50 mt-2 text-[15px]">
             {(accounts ?? []).length} conta{(accounts ?? []).length !== 1 ? "s" : ""}
           </div>
@@ -112,7 +112,7 @@ export default function ContasPage() {
                 <span className="w-1 rounded-full bg-pos" />
                 <div>
                   <div className="text-sm text-ink-dim">Total</div>
-                  <div className="text-xl font-bold text-ink">{brl(total)}</div>
+                  <div className="text-xl font-bold text-ink"><Amount>{brl(total)}</Amount></div>
                 </div>
               </div>
             </Card>

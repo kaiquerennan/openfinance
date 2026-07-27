@@ -75,6 +75,8 @@ export default function BottomNav() {
   const current = SLOT_OPTIONS[effSlot];
   const slotActive = pathname === current.href;
 
+  if (pathname === "/login") return null;
+
   return (
     <>
       <nav className="fixed bottom-0 inset-x-0 z-40 pointer-events-none lg:hidden">

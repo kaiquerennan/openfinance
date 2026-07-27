@@ -27,6 +27,7 @@ import LimitSheet from "@/components/LimitSheet";
 import TxList from "@/components/TxList";
 import { BudgetPace } from "@/components/Charts";
 import {
+  Amount,
   Card,
   CardHeader,
   ErrorCard,
@@ -139,7 +140,7 @@ export default function HomePage() {
           {budget === null ? (
             <button onClick={() => setLimitOpen(true)} className="text-left">
               <div className="text-4xl font-semibold">
-                {brl0(spent)}{" "}
+                <Amount>{brl0(spent)}</Amount>{" "}
                 <span className="text-white/70 text-2xl font-normal">gastos no mês</span>
               </div>
               <div className="text-white/70 mt-1 text-[15px]">
@@ -149,7 +150,7 @@ export default function HomePage() {
           ) : (
             <>
               <div className="text-4xl font-semibold">
-                {brl0(Math.abs(over ?? 0))}{" "}
+                <Amount>{brl0(Math.abs(over ?? 0))}</Amount>{" "}
                 <span className="text-white/70 text-2xl font-normal">
                   {(over ?? 0) > 0 ? "acima do limite" : "disponíveis"}
                 </span>
@@ -158,7 +159,7 @@ export default function HomePage() {
                 onClick={() => setLimitOpen(true)}
                 className="text-white/70 mt-1 text-[15px]"
               >
-                de {brl0(budget)} planejados para o mês ✏️
+                de <Amount>{brl0(budget)}</Amount> planejados para o mês ✏️
               </button>
             </>
           )}
@@ -181,11 +182,11 @@ export default function HomePage() {
               {(over ?? 0) > 0 ? (
                 <>
                   Você ultrapassou o limite mensal em{" "}
-                  <b>{brl0(Math.abs(over ?? 0))}</b>.
+                  <b><Amount>{brl0(Math.abs(over ?? 0))}</Amount></b>.
                 </>
               ) : (
                 <>
-                  Você ainda tem <b>{brl0(Math.abs(over ?? 0))}</b> do limite
+                  Você ainda tem <b><Amount>{brl0(Math.abs(over ?? 0))}</Amount></b> do limite
                   deste mês.
                 </>
               )}
@@ -210,7 +211,7 @@ export default function HomePage() {
                 <div className="text-sm text-ink-dim">{s.label}</div>
                 <div className="text-lg font-bold text-ink whitespace-nowrap">
                   {s.signed && s.value < 0 ? "-" : ""}
-                  {brl0(Math.abs(s.value))}
+                  <Amount>{brl0(Math.abs(s.value))}</Amount>
                 </div>
               </div>
             </div>
@@ -242,7 +243,7 @@ export default function HomePage() {
                     {upcoming.length} conta{upcoming.length > 1 ? "s" : ""} a pagar
                   </div>
                   <div className="text-sm text-ink-dim flex items-center gap-2">
-                    Total de {brl0(upcoming.reduce((s, u) => s + u.monthlyAmount, 0))}
+                    Total de <Amount>{brl0(upcoming.reduce((s, u) => s + u.monthlyAmount, 0))}</Amount>
                     <span className="text-ink-faint">|</span>
                     Até{" "}
                     {upcoming[upcoming.length - 1].due.toLocaleDateString("pt-BR", {
@@ -288,7 +289,7 @@ export default function HomePage() {
                 <span className="w-1 rounded-full bg-pos" />
                 <div>
                   <div className="text-sm text-ink-dim">Total</div>
-                  <div className="text-xl font-bold text-ink">{brl(total)}</div>
+                  <div className="text-xl font-bold text-ink"><Amount>{brl(total)}</Amount></div>
                 </div>
               </div>
             </Card>

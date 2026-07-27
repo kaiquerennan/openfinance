@@ -14,6 +14,7 @@ import {
   YAxis,
 } from "recharts";
 import { brl, compactBRL } from "@/lib/api";
+import { maskAmount, useHideValues } from "@/lib/privacy";
 
 const AXIS = "#a9b0bc";
 
@@ -28,6 +29,7 @@ function TipBox({
   payload?: { name?: string; value?: number; fill?: string; color?: string }[];
   label?: string;
 }) {
+  const hide = useHideValues();
   if (!active || !payload?.length) return null;
   const rows = payload.filter((p) => (p.value ?? 0) !== 0);
   return (
@@ -39,7 +41,7 @@ function TipBox({
             className="h-2 w-2 rounded-full"
             style={{ background: p.fill ?? p.color }}
           />
-          {p.name}: <span className="font-semibold text-ink">{brl(p.value ?? 0)}</span>
+          {p.name}: <span className="font-semibold text-ink">{maskAmount(brl(p.value ?? 0), hide)}</span>
         </div>
       ))}
     </div>
@@ -264,6 +266,7 @@ export function BudgetPace({
   daysInMonth: number;
   budget: number;
 }) {
+  const hide = useHideValues();
   const W = 360;
   const H = 150;
   const today = cumulative.length;
@@ -328,7 +331,7 @@ export function BudgetPace({
         }`}
         style={{ left: `${badgeLeft}%`, top: `${badgeTop}%` }}
       >
-        {brl(Math.abs(diff))} {over ? "acima" : "abaixo"}
+        {maskAmount(brl(Math.abs(diff)), hide)} {over ? "acima" : "abaixo"}
       </div>
     </div>
   );

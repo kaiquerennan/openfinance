@@ -18,6 +18,7 @@ import BlueHeader from "@/components/Header";
 import Sheet from "@/components/Sheet";
 import { GoalBars } from "@/components/Charts";
 import {
+  Amount,
   Card,
   ErrorCard,
   Field,
@@ -172,8 +173,8 @@ export default function MetasPage() {
                           {g.name}
                         </div>
                         <div className="text-[15px] mt-0.5">
-                          <span className="font-bold text-ink">{brl0(g.saved)}</span>
-                          <span className="text-ink-faint"> / {brl0(target)}</span>
+                          <span className="font-bold text-ink"><Amount>{brl0(g.saved)}</Amount></span>
+                          <span className="text-ink-faint"> / <Amount>{brl0(target)}</Amount></span>
                         </div>
                       </div>
                       <span className="rounded-full bg-soft px-3.5 py-2 text-sm font-bold text-ink">
@@ -350,8 +351,8 @@ function GoalSheet({
     <Sheet open onClose={onClose} title={`${goal.icon} ${goal.name}`}>
       <div className="space-y-4">
         <div className="text-center">
-          <span className="font-bold text-2xl text-ink">{brl0(goal.saved)}</span>
-          <span className="text-ink-faint text-lg"> / {brl0(target)}</span>
+          <span className="font-bold text-2xl text-ink"><Amount>{brl0(goal.saved)}</Amount></span>
+          <span className="text-ink-faint text-lg"> / <Amount>{brl0(target)}</Amount></span>
         </div>
         <div className="h-3 rounded-full bg-soft overflow-hidden">
           <div

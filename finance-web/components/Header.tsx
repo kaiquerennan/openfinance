@@ -8,6 +8,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { api } from "@/lib/api";
 import { bumpData } from "@/lib/bus";
+import { toggleHideValues, useHideValues } from "@/lib/privacy";
 import { useConnectBank } from "@/lib/useConnectBank";
 import AddTxSheet from "@/components/AddTxSheet";
 import Sheet from "@/components/Sheet";
@@ -18,6 +19,8 @@ import {
   IconCalendarDots,
   IconCard,
   IconChat,
+  IconEye,
+  IconEyeOff,
   IconFlow,
   IconGear,
   IconHome,
@@ -27,6 +30,7 @@ import {
   IconTarget,
   IconTrophy,
   IconWallet,
+  IconX,
 } from "@/components/icons";
 
 export const MENU = [
@@ -66,6 +70,7 @@ export default function BlueHeader({
   const [syncOpen, setSyncOpen] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [syncMsg, setSyncMsg] = useState<string | null>(null);
+  const hideValues = useHideValues();
 
   async function syncNow() {
     setSyncing(true);
@@ -113,6 +118,13 @@ export default function BlueHeader({
         </button>
         {title && <h1 className="text-xl font-semibold">{title}</h1>}
         <div className="hero-btn rounded-full flex items-center p-1.5 gap-1">
+          <button
+            aria-label={hideValues ? "Mostrar valores" : "Esconder valores"}
+            onClick={toggleHideValues}
+            className="h-9 w-9 rounded-full grid place-items-center bg-white/15"
+          >
+            {hideValues ? <IconEyeOff size={17} /> : <IconEye size={17} />}
+          </button>
           <button
             aria-label="Sincronizar"
             onClick={() => setSyncOpen(true)}
@@ -164,6 +176,19 @@ export default function BlueHeader({
                   </Link>
                 );
               })}
+              <button
+                onClick={async () => {
+                  setMenuOpen(false);
+                  await api.logout().catch(() => {});
+                  window.location.href = "/login";
+                }}
+                className="w-full flex items-center gap-3.5 px-4 py-3 rounded-2xl text-[15px] font-semibold text-[#5c6470]"
+              >
+                <span className="text-[#8d95a3]">
+                  <IconX size={20} />
+                </span>
+                Sair
+              </button>
             </div>
           </div>
         </div>

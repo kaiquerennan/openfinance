@@ -27,6 +27,7 @@ import Sheet from "@/components/Sheet";
 import TxList from "@/components/TxList";
 import { SegBars } from "@/components/Charts";
 import {
+  Amount,
   Chip,
   ErrorCard,
   Field,
@@ -252,25 +253,29 @@ function TransacoesInner() {
         {tab === "visao" && (
           <div className="mt-4">
             <div className="text-white/70 text-[15px]">Total gasto</div>
-            <div className="text-5xl font-semibold mt-1">{brl0(totalSpent)}</div>
+            <div className="text-5xl font-semibold mt-1"><Amount>{brl0(totalSpent)}</Amount></div>
             <button
               onClick={() => setLimitCat("_global")}
               className="text-white/70 mt-2 text-[15px]"
             >
-              {globalBudget !== null
-                ? `do limite de ${brl0(globalBudget)} ✏️`
-                : "definir limite mensal ✏️"}
+              {globalBudget !== null ? (
+                <>do limite de <Amount>{brl0(globalBudget)}</Amount> ✏️</>
+              ) : (
+                "definir limite mensal ✏️"
+              )}
             </button>
           </div>
         )}
         {tab === "recorrentes" && (
           <div className="mt-4">
             <div className="text-white/70 text-[15px]">Contas fixas</div>
-            <div className="text-5xl font-semibold mt-1">{brl0(fixedTotal)}</div>
+            <div className="text-5xl font-semibold mt-1"><Amount>{brl0(fixedTotal)}</Amount></div>
             <div className="text-white/50 mt-2 text-[15px]">
-              {prevFixed > 0
-                ? `${brl0(prevFixed)} no mês anterior`
-                : "Sem dados do mês anterior"}
+              {prevFixed > 0 ? (
+                <><Amount>{brl0(prevFixed)}</Amount> no mês anterior</>
+              ) : (
+                "Sem dados do mês anterior"
+              )}
             </div>
           </div>
         )}
@@ -344,7 +349,7 @@ function TransacoesInner() {
                           )}
                         </span>
                         <span className="text-sm text-ink-dim min-w-8 text-right">
-                          {limit !== null ? brl0(limit).replace(/ /g, " ") : "—"}
+                          {limit !== null ? <Amount>{brl0(limit).replace(/ /g, " ")}</Amount> : "—"}
                         </span>
                       </span>
                     </button>

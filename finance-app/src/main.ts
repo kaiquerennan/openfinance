@@ -1,11 +1,13 @@
 import { NestFactory } from '@nestjs/core';
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  app.use(cookieParser());
   app.useGlobalPipes(
     new ValidationPipe({ whitelist: true, transform: true }),
   );
@@ -26,6 +28,7 @@ async function bootstrap() {
           /^http:\/\/10\.\d+\.\d+\.\d+:\d+$/,
           /^http:\/\/172\.(1[6-9]|2\d|3[01])\.\d+\.\d+:\d+$/,
         ],
+    credentials: true,
   });
 
   await app.listen(port);

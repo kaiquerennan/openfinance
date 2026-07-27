@@ -14,6 +14,7 @@ import { ConfigService } from '@nestjs/config';
 import { SyncService } from './sync.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { PluggyWebhookPayload } from '../pluggy/pluggy.types';
+import { Public } from '../auth/public.decorator';
 
 /** Eventos de webhook que devem disparar uma sincronizacao do item. */
 const WEBHOOK_EVENTS_TO_SYNC = new Set([
@@ -61,6 +62,7 @@ export class SyncController {
    * no header X-Webhook-Secret (configurável como header customizado ao
    * registrar o webhook no dashboard da Pluggy).
    */
+  @Public()
   @Post('webhook')
   @HttpCode(200)
   handleWebhook(

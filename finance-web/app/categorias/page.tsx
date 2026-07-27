@@ -17,7 +17,7 @@ import { catColor, catMeta, txKind } from "@/lib/categories";
 import { useDataVersion } from "@/lib/bus";
 import BlueHeader from "@/components/Header";
 import LimitSheet from "@/components/LimitSheet";
-import { ErrorCard, LoadingCard, Money, MonthNav } from "@/components/ui";
+import { Amount, ErrorCard, LoadingCard, Money, MonthNav } from "@/components/ui";
 
 export default function CategoriasPage() {
   const version = useDataVersion();
@@ -76,7 +76,7 @@ export default function CategoriasPage() {
       <BlueHeader title="Categorias">
         <div className="mt-4">
           <div className="text-white/70 text-[15px]">Total gasto</div>
-          <div className="text-5xl font-semibold mt-1">{brl0(total)}</div>
+          <div className="text-5xl font-semibold mt-1"><Amount>{brl0(total)}</Amount></div>
         </div>
         <div className="mt-5">
           <MonthNav months={months} value={month} onChange={setMonth} label={monthLabel} />
@@ -130,7 +130,7 @@ export default function CategoriasPage() {
                         )}
                       </span>
                       <span className="text-sm text-ink-dim min-w-8 text-right">
-                        {limit !== null ? brl0(limit) : "—"}
+                        {limit !== null ? <Amount>{brl0(limit)}</Amount> : "—"}
                       </span>
                     </span>
                   </button>

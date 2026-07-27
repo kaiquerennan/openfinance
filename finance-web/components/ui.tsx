@@ -4,6 +4,7 @@
 
 import React from "react";
 import { catColor, catMeta } from "@/lib/categories";
+import { maskAmount, useHideValues } from "@/lib/privacy";
 import { IconChevronLeft, IconChevronRight } from "@/components/icons";
 
 export function Card({
@@ -34,6 +35,7 @@ export function Money({
   className?: string;
   signed?: boolean;
 }) {
+  const hide = useHideValues();
   const abs = Math.abs(value);
   const num = abs.toLocaleString("pt-BR", {
     minimumFractionDigits: cents ? 2 : 0,
@@ -44,9 +46,15 @@ export function Money({
     <span className={`whitespace-nowrap ${className}`}>
       {sign}
       <span className="text-[0.72em] font-semibold align-baseline mr-0.5">R$</span>
-      <span className="font-bold tracking-tight">{num}</span>
+      <span className="font-bold tracking-tight">{hide ? "••••" : num}</span>
     </span>
   );
+}
+
+/** Envolve um texto já formatado (brl/brl0) pra respeitar o "esconder valores". */
+export function Amount({ children }: { children: string }) {
+  const hide = useHideValues();
+  return <>{maskAmount(children, hide)}</>;
 }
 
 /** Chip pastel de categoria com emoji. */

@@ -212,9 +212,17 @@ export interface ManualTxInput {
   category?: string;
 }
 
+/** Em 401, a sessao caiu (ou nunca existiu) — manda pra tela de login. */
+function redirectToLoginIfUnauthorized(status: number) {
+  if (status === 401 && typeof window !== 'undefined' && window.location.pathname !== '/login') {
+    window.location.href = '/login';
+  }
+}
+
 async function get<T>(path: string): Promise<T> {
   const res = await fetch(`${BASE}${path}`, { cache: 'no-store' });
   if (!res.ok) {
+    redirectToLoginIfUnauthorized(res.status);
     const body = await res.json().catch(() => ({}));
     throw new Error(body.message || `Erro ${res.status} em ${path}`);
   }
@@ -232,6 +240,7 @@ async function send<T>(
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
   if (!res.ok) {
+    redirectToLoginIfUnauthorized(res.status);
     const data = await res.json().catch(() => ({}));
     throw new Error(data.message || `Erro ${res.status} em ${path}`);
   }
@@ -297,6 +306,9 @@ export const api = {
   manualTx: (t: ManualTxInput) => post<DbTransaction>('/manual/transactions', t),
   deleteManualTx: (id: string) =>
     send<{ deleted: string }>('DELETE', `/manual/transactions/${id}`),
+
+  login: (password: string) => post<{ ok: true }>('/auth/login', { password }),
+  logout: () => post<{ ok: true }>('/auth/logout'),
 };
 
 export const brl = (n: number) =>

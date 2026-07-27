@@ -221,3 +221,18 @@ export const IconChat = ({ size = 20 }: { size?: number }) => (
     <path d="M12 3a9 9 0 0 1 9 9 9 9 0 0 1-9 9c-1.3 0-2.6-.28-3.7-.78L4 21l.9-4A9 9 0 0 1 12 3Z" />
   </Svg>
 );
+
+export const IconEye = ({ size = 18 }: { size?: number }) => (
+  <Svg size={size}>
+    <path d="M1.5 12S5 5 12 5s10.5 7 10.5 7-3.5 7-10.5 7S1.5 12 1.5 12Z" />
+    <circle cx="12" cy="12" r="3" />
+  </Svg>
+);
+
+export const IconEyeOff = ({ size = 18 }: { size?: number }) => (
+  <Svg size={size}>
+    <path d="M3 3l18 18" />
+    <path d="M10.6 5.2A10.9 10.9 0 0 1 12 5c7 0 10.5 7 10.5 7a14 14 0 0 1-3.06 3.94M6.5 6.6C3.4 8.5 1.5 12 1.5 12s3.5 7 10.5 7c1.4 0 2.66-.28 3.78-.74" />
+    <path d="M9.9 9.9a3 3 0 0 0 4.2 4.2" />
+  </Svg>
+);

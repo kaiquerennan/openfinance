@@ -16,7 +16,7 @@ import { useDataVersion } from "@/lib/bus";
 import BlueHeader from "@/components/Header";
 import TxList from "@/components/TxList";
 import { ValueBars } from "@/components/Charts";
-import { Card, EmptyState, ErrorCard, LoadingCard } from "@/components/ui";
+import { Amount, Card, EmptyState, ErrorCard, LoadingCard } from "@/components/ui";
 
 export default function InvestimentosPage() {
   const version = useDataVersion();
@@ -66,7 +66,7 @@ export default function InvestimentosPage() {
       <BlueHeader title="Investimentos">
         <div className="mt-4">
           <div className="text-white/70 text-[15px]">Aportes em 12 meses</div>
-          <div className="text-5xl font-semibold mt-1">{brl0(totalInvested)}</div>
+          <div className="text-5xl font-semibold mt-1"><Amount>{brl0(totalInvested)}</Amount></div>
           <div className="text-white/50 mt-2 text-[15px]">
             {all.length} movimentações
           </div>

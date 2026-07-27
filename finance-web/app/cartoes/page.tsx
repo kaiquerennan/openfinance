@@ -7,7 +7,7 @@ import { api, brl0, DbAccount, DbTransaction } from "@/lib/api";
 import { useDataVersion } from "@/lib/bus";
 import BlueHeader from "@/components/Header";
 import TxList from "@/components/TxList";
-import { Card, EmptyState, ErrorCard, LoadingCard, Money } from "@/components/ui";
+import { Amount, Card, EmptyState, ErrorCard, LoadingCard, Money } from "@/components/ui";
 
 export default function CartoesPage() {
   const version = useDataVersion();
@@ -40,7 +40,7 @@ export default function CartoesPage() {
       <BlueHeader title="Cartões">
         <div className="mt-4">
           <div className="text-white/70 text-[15px]">Faturas atuais</div>
-          <div className="text-5xl font-semibold mt-1">{brl0(totalFatura)}</div>
+          <div className="text-5xl font-semibold mt-1"><Amount>{brl0(totalFatura)}</Amount></div>
           <div className="text-white/50 mt-2 text-[15px]">
             {(accounts ?? []).length}{" "}
             {(accounts ?? []).length === 1 ? "cartão" : "cartões"}
