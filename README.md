@@ -1,4 +1,4 @@
-# openfinance
+# Api Open Finance
 
 App pessoal de finanças com sincronização automática via Open Finance (Pluggy). Dashboard mobile-first com visão geral, contas, transações, categorias, metas e análises.
 
