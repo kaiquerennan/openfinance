@@ -180,10 +180,16 @@ export class RuleBasedNarrator implements InsightNarrator {
         `Reduzir delivery pela metade economizaria cerca de ${brl(delivery.total / 2)}/mês.`,
       );
     if (d.subscriptions.items.length >= 2) {
-      const cheapest = d.subscriptions.items.slice(-2);
-      const econ = cheapest.reduce((a, b) => a + b.monthlyAmount, 0);
+      // "Menos usada" = vista em menos meses; empate desempata pelo maior
+      // valor, que e onde o corte compensa mais. A lista chega ordenada por
+      // valor, entao precisa reordenar antes de escolher.
+      const leastUsed = [...d.subscriptions.items]
+        .sort((a, b) => a.monthsSeen - b.monthsSeen || b.monthlyAmount - a.monthlyAmount)
+        .slice(0, 2);
+      const econ = leastUsed.reduce((a, b) => a + b.monthlyAmount, 0);
+      const nomes = leastUsed.map((s) => `"${s.description}"`).join(' e ');
       out.push(
-        `Revisar 2 assinaturas menos usadas pode liberar até ${brl(econ)}/mês (${brl(econ * 12)}/ano).`,
+        `Revisar as 2 assinaturas menos usadas (${nomes}) pode liberar até ${brl(econ)}/mês (${brl(econ * 12)}/ano).`,
       );
     }
     const gambling = d.categories.find((c) => c.category.toLowerCase() === 'gambling');
