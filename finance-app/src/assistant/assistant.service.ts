@@ -72,13 +72,17 @@ export class AssistantService {
       status: g.status,
     }));
 
-    const otherMonths = months.slice(-HISTORY_MONTHS).filter((m) => m !== targetMonth);
-    const history = await Promise.all(
-      otherMonths.map(async (m) => {
-        const r = await this.analytics.report(m);
-        return { mes: m, ...r.data.summary };
-      }),
-    );
+    // Historico resumido: uma serie agregada, nao um relatorio completo por
+    // mes. Antes eram ate 12 relatorios (cada um reprocessando o extrato
+    // inteiro) so para montar o contexto de uma pergunta.
+    const history = (await this.analytics.series(HISTORY_MONTHS))
+      .filter((p) => p.month !== targetMonth)
+      .map((p) => ({
+        mes: p.month,
+        income: p.income,
+        consumption: p.consumption,
+        savings: p.savings,
+      }));
 
     const systemInstruction =
       'Você é um consultor financeiro pessoal, respondendo em português do Brasil ' +

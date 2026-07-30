@@ -5,11 +5,29 @@ import { computeAnalytics, computeMonthlySeries, monthKey } from './analytics.me
 import { RuleBasedNarrator, InsightNarrator } from './narrator';
 import { AnalyticsReport, MonthPoint, Tx } from './analytics.types';
 
+/**
+ * Tudo que foi calculado sobre uma mesma foto do banco.
+ *
+ * Carregar e normalizar o extrato inteiro e a parte cara da analise, e o
+ * resultado so muda quando chega transacao nova. Guardamos por "impressao
+ * digital" da tabela (quantidade + ultima alteracao): enquanto ela nao muda,
+ * o cache vale; qualquer sync ou lancamento manual a altera e invalida tudo
+ * sozinho, sem o servico de sync precisar avisar ninguem.
+ */
+interface Snapshot {
+  fingerprint: string;
+  tx: Tx[];
+  months: string[];
+  reports: Map<string, AnalyticsReport>;
+  series: Map<number, MonthPoint[]>;
+}
+
 @Injectable()
 export class AnalyticsService {
   private readonly logger = new Logger(AnalyticsService.name);
   // Trocar por um AiNarrator (Claude) no futuro — mesma interface.
   private readonly narrator: InsightNarrator = new RuleBasedNarrator();
+  private snapshot: Snapshot | null = null;
 
   constructor(private readonly prisma: PrismaService) {}
 
@@ -18,26 +36,29 @@ export class AnalyticsService {
    * accountId opcional restringe a uma conta.
    */
   async report(month?: string, accountId?: string): Promise<AnalyticsReport> {
-    const tx = await this.loadTransactions(accountId);
-    if (!tx.length)
+    const snap = await this.snapshotFor(accountId);
+    if (!snap.tx.length)
       throw new NotFoundException(
         'Nenhuma transacao encontrada. Rode o sync de um item antes de analisar.',
       );
 
-    const targetMonth = month ?? this.latestMonth(tx);
-    this.logger.log(
-      `Analise do mes ${targetMonth} sobre ${tx.length} transacoes${accountId ? ` (conta ${accountId})` : ''}.`,
-    );
+    const targetMonth = month ?? snap.months[snap.months.length - 1];
 
-    const data = computeAnalytics(tx, targetMonth);
-    const narrative = this.narrator.narrate(data);
-    return { data, narrative };
+    const cached = snap.reports.get(targetMonth);
+    if (cached) return cached;
+
+    this.logger.log(
+      `Analise do mes ${targetMonth} sobre ${snap.tx.length} transacoes${accountId ? ` (conta ${accountId})` : ''}.`,
+    );
+    const data = computeAnalytics(snap.tx, targetMonth);
+    const report = { data, narrative: this.narrator.narrate(data) };
+    snap.reports.set(targetMonth, report);
+    return report;
   }
 
   /** Lista os meses disponiveis (para o cliente escolher). */
   async availableMonths(accountId?: string): Promise<string[]> {
-    const tx = await this.loadTransactions(accountId);
-    return [...new Set(tx.map((t) => monthKey(t.date)))].sort();
+    return (await this.snapshotFor(accountId)).months;
   }
 
   /**
@@ -47,13 +68,52 @@ export class AnalyticsService {
    * batem em todas as telas.
    */
   async series(months = 12, accountId?: string): Promise<MonthPoint[]> {
-    const tx = await this.loadTransactions(accountId);
-    if (!tx.length) return [];
-    const available = [...new Set(tx.map((t) => monthKey(t.date)))].sort();
-    return computeMonthlySeries(tx, available.slice(-months));
+    const snap = await this.snapshotFor(accountId);
+    if (!snap.tx.length) return [];
+
+    const cached = snap.series.get(months);
+    if (cached) return cached;
+
+    const computed = computeMonthlySeries(snap.tx, snap.months.slice(-months));
+    snap.series.set(months, computed);
+    return computed;
   }
 
   // ---------------------------------------------------------------------------
+
+  /** Foto atual do extrato, reaproveitada enquanto o banco nao mudar. */
+  private async snapshotFor(accountId?: string): Promise<Snapshot> {
+    const fingerprint = await this.fingerprint(accountId);
+    if (this.snapshot?.fingerprint === fingerprint) return this.snapshot;
+
+    const tx = await this.loadTransactions(accountId);
+    this.snapshot = {
+      fingerprint,
+      tx,
+      months: [...new Set(tx.map((t) => monthKey(t.date)))].sort(),
+      reports: new Map(),
+      series: new Map(),
+    };
+    this.logger.log(`Extrato recarregado: ${tx.length} transacoes.`);
+    return this.snapshot;
+  }
+
+  /**
+   * Identifica o estado da tabela com uma unica agregacao. Qualquer insercao,
+   * edicao ou remocao muda a contagem ou a data de atualizacao mais recente.
+   */
+  private async fingerprint(accountId?: string): Promise<string> {
+    const agg = await this.prisma.transaction.aggregate({
+      where: { accountId: accountId || undefined },
+      _count: { _all: true },
+      _max: { updatedAt: true },
+    });
+    return [
+      accountId ?? 'all',
+      agg._count._all,
+      agg._max.updatedAt?.getTime() ?? 0,
+    ].join(':');
+  }
 
   private async loadTransactions(accountId?: string): Promise<Tx[]> {
     const rows = await this.prisma.transaction.findMany({
@@ -83,9 +143,5 @@ export class AnalyticsService {
         uncertain,
       };
     });
-  }
-
-  private latestMonth(tx: Tx[]): string {
-    return tx.map((t) => monthKey(t.date)).sort().slice(-1)[0];
   }
 }
