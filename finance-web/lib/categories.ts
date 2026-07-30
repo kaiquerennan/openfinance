@@ -81,29 +81,49 @@ export function catMeta(category: string | null | undefined): CatMeta {
 }
 
 /**
- * Grupo econômico da transação (espelha category-groups.ts do backend):
- * transferências/investimentos/pagamento de fatura não são consumo.
+ * Grupo econômico da transação — espelho exato de category-groups.ts do
+ * backend. Precisa continuar idêntico: se as duas listas divergirem, a mesma
+ * transação vira "consumo" de um lado e "taxa" do outro, e a tela passa a
+ * mostrar um total diferente do que a análise calculou.
+ *
+ * Totais de dinheiro (gasto do mês, série de meses) vêm prontos do backend;
+ * isto aqui serve para decidir cor/ícone e para filtrar listas na tela.
  */
-const NEUTRAL = new Set([
-  'transfers',
-  'same person transfer',
-  'transfer - pix',
-  'transfer - internal',
-  'wire transfer',
-  'credit card payment',
-  'investments',
-  'loans and financing',
-  'loans',
-]);
-const INCOME = new Set(['income', 'salary', 'paycheck']);
+const GROUP_BY_CATEGORY: Record<string, TxGroup> = {
+  // Movimentações (nem renda nem gasto)
+  transfers: 'transfer',
+  'same person transfer': 'transfer',
+  'transfer - pix': 'transfer',
+  'transfer - internal': 'transfer',
+  'wire transfer': 'transfer',
+  'credit card payment': 'transfer',
 
-export type TxKind = 'income' | 'consumption' | 'neutral';
+  investments: 'investment',
 
-export function txKind(category: string | null | undefined, amount: number): TxKind {
+  'loans and financing': 'debt',
+  loans: 'debt',
+
+  'tax on financial operations': 'fee',
+  'late payment and overdraft costs': 'fee',
+  'bank fees': 'fee',
+  'interest charges': 'fee',
+
+  income: 'income',
+  salary: 'income',
+  paycheck: 'income',
+};
+
+export type TxGroup =
+  | 'income'
+  | 'consumption'
+  | 'transfer'
+  | 'investment'
+  | 'debt'
+  | 'fee';
+
+export function txGroup(category: string | null | undefined, amount: number): TxGroup {
   const key = (category ?? '').trim().toLowerCase();
-  if (NEUTRAL.has(key)) return 'neutral';
-  if (INCOME.has(key)) return 'income';
-  return amount < 0 ? 'consumption' : 'income';
+  return GROUP_BY_CATEGORY[key] ?? (amount < 0 ? 'consumption' : 'income');
 }
 
 /** Paleta categórica p/ barras empilhadas (fundo claro), em ordem fixa. */

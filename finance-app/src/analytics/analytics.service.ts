@@ -1,9 +1,9 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { groupOf } from './category-groups';
-import { computeAnalytics, monthKey } from './analytics.metrics';
+import { computeAnalytics, computeMonthlySeries, monthKey } from './analytics.metrics';
 import { RuleBasedNarrator, InsightNarrator } from './narrator';
-import { AnalyticsReport, Tx } from './analytics.types';
+import { AnalyticsReport, MonthPoint, Tx } from './analytics.types';
 
 @Injectable()
 export class AnalyticsService {
@@ -38,6 +38,19 @@ export class AnalyticsService {
   async availableMonths(accountId?: string): Promise<string[]> {
     const tx = await this.loadTransactions(accountId);
     return [...new Set(tx.map((t) => monthKey(t.date)))].sort();
+  }
+
+  /**
+   * Serie dos ultimos N meses com renda, consumo e categorias ja agregados.
+   * Os graficos do cliente consomem isto em vez de baixar as transacoes e
+   * refazer a classificacao — e a mesma regra do relatorio, entao os numeros
+   * batem em todas as telas.
+   */
+  async series(months = 12, accountId?: string): Promise<MonthPoint[]> {
+    const tx = await this.loadTransactions(accountId);
+    if (!tx.length) return [];
+    const available = [...new Set(tx.map((t) => monthKey(t.date)))].sort();
+    return computeMonthlySeries(tx, available.slice(-months));
   }
 
   // ---------------------------------------------------------------------------

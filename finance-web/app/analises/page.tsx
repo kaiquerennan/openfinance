@@ -7,12 +7,10 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   api,
-  DbTransaction,
   MONTH_LABELS,
-  monthRange,
-  signedAmount,
+  MonthPoint,
 } from "@/lib/api";
-import { catColor, catMeta, txKind } from "@/lib/categories";
+import { catColor, catMeta } from "@/lib/categories";
 import { useDataVersion } from "@/lib/bus";
 import BlueHeader from "@/components/Header";
 import { SegBars, ValueBars } from "@/components/Charts";
@@ -44,50 +42,30 @@ function AnalisesInner() {
     : "fluxo";
   const [tab, setTab] = useState(initialTab);
   const [period, setPeriod] = useState(12);
-  const [byMonth, setByMonth] = useState<Map<string, DbTransaction[]> | null>(null);
+  const [serie, setSerie] = useState<MonthPoint[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // A série já vem agregada e classificada pelo backend — mesma regra do
+  // relatório, então estes totais batem com os das outras telas.
   useEffect(() => {
-    (async () => {
-      try {
-        const ms = (await api.months()).slice(-12);
-        const pages = await Promise.all(
-          ms.map((m) => {
-            const { from, to } = monthRange(m);
-            return api.transactions({ from, to, take: 1000 });
-          }),
-        );
-        setByMonth(new Map(ms.map((m, i) => [m, pages[i].transactions])));
-      } catch (e) {
-        setError((e as Error).message);
-      }
-    })();
+    api
+      .series(12)
+      .then(setSerie)
+      .catch((e) => setError((e as Error).message));
   }, [version]);
 
-  const months = useMemo(
-    () => [...(byMonth?.keys() ?? [])].slice(-period),
-    [byMonth, period],
+  const stats = useMemo(
+    () =>
+      (serie ?? []).slice(-period).map((p) => ({
+        month: p.month,
+        income: p.income,
+        spent: p.consumption,
+        cats: new Map(
+          p.categories.map((c) => [c.category.toLowerCase(), c.total] as const),
+        ),
+      })),
+    [serie, period],
   );
-
-  // Totais por mês: receitas, gastos e por categoria de consumo
-  const stats = useMemo(() => {
-    return months.map((m) => {
-      let inc = 0;
-      let spent = 0;
-      const cats = new Map<string, number>();
-      for (const t of byMonth?.get(m) ?? []) {
-        const amt = signedAmount(t);
-        const kind = txKind(t.category, amt);
-        if (kind === "income" && amt > 0) inc += amt;
-        else if (kind === "consumption" && amt < 0) {
-          spent += -amt;
-          const key = (t.category ?? "sem categoria").toLowerCase();
-          cats.set(key, (cats.get(key) ?? 0) + -amt);
-        }
-      }
-      return { month: m, income: inc, spent, cats };
-    });
-  }, [months, byMonth]);
 
   const totalIncome = stats.reduce((s, m) => s + m.income, 0);
   const totalSpent = stats.reduce((s, m) => s + m.spent, 0);
@@ -156,7 +134,7 @@ function AnalisesInner() {
 
       <div className="px-4 mt-6 space-y-5">
         {error && <ErrorCard message={error} />}
-        {!byMonth ? (
+        {!serie ? (
           <LoadingCard text="Montando suas análises…" />
         ) : (
           <div className="rise space-y-5 lg:space-y-0 lg:grid lg:grid-cols-3 lg:gap-6 lg:items-start">

@@ -19,7 +19,7 @@ import {
   monthRange,
   signedAmount,
 } from "@/lib/api";
-import { catColor, catMeta, txKind } from "@/lib/categories";
+import { catColor, catMeta, txGroup } from "@/lib/categories";
 import { bumpData, useDataVersion } from "@/lib/bus";
 import BlueHeader from "@/components/Header";
 import LimitSheet from "@/components/LimitSheet";
@@ -170,7 +170,7 @@ function TransacoesInner() {
     const map = new Map<string, number>();
     for (const t of monthTxs ?? []) {
       const amt = signedAmount(t);
-      if (txKind(t.category, amt) !== "consumption" || amt >= 0) continue;
+      if (txGroup(t.category, amt) !== "consumption" || amt >= 0) continue;
       const key = (t.category ?? "sem categoria").toLowerCase();
       map.set(key, (map.get(key) ?? 0) + -amt);
     }

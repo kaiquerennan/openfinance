@@ -2,6 +2,7 @@ import {
   AnalyticsData,
   CategoryStat,
   HealthScore,
+  MonthPoint,
   Subscription,
   TrendPoint,
   Tx,
@@ -132,6 +133,38 @@ function netGamblingCashouts(all: Tx[]): Tx[] {
 // Calculo principal
 // ---------------------------------------------------------------------------
 
+/**
+ * Serie mensal agregada (renda, consumo e categorias por mes).
+ *
+ * Existe para que o cliente nunca precise reclassificar transacao por conta
+ * propria: a mesma regra de grupo economico e o mesmo abatimento de apostas
+ * do relatorio valem aqui. Antes o frontend refazia essa conta e chegava a
+ * numeros diferentes dos do relatorio para o mesmo mes.
+ */
+export function computeMonthlySeries(rawAll: Tx[], months: string[]): MonthPoint[] {
+  const all = netGamblingCashouts(rawAll);
+  return months.map((month) => {
+    const inM = all.filter((t) => inMonth(t, month));
+    const income = round2(sum(inM.filter(incomeIn).map((t) => t.amount)));
+    const byCat = new Map<string, number>();
+    let consumption = 0;
+    for (const t of inM.filter(consumptionOut)) {
+      const value = Math.abs(t.amount);
+      consumption += value;
+      byCat.set(t.category, (byCat.get(t.category) ?? 0) + value);
+    }
+    return {
+      month,
+      income,
+      consumption: round2(consumption),
+      savings: round2(income - consumption),
+      categories: [...byCat.entries()]
+        .map(([category, total]) => ({ category, total: round2(total) }))
+        .sort((a, b) => b.total - a.total),
+    };
+  });
+}
+
 export function computeAnalytics(rawAll: Tx[], targetMonth: string): AnalyticsData {
   const all = netGamblingCashouts(rawAll);
   const gamblingNet = computeGamblingNet(
@@ -203,6 +236,9 @@ export function computeAnalytics(rawAll: Tx[], targetMonth: string): AnalyticsDa
     gamblingNet,
   };
 
+  // --- Gasto acumulado dia a dia (ritmo do mes) ---
+  const dailyConsumption = computeDailyConsumption(thisM, targetMonth);
+
   // --- Indice de saude ---
   const health = computeHealth(trends, all, targetMonth, income, debtOut, feesOut);
 
@@ -249,7 +285,33 @@ export function computeAnalytics(rawAll: Tx[], targetMonth: string): AnalyticsDa
     waste,
     health,
     movements,
+    dailyConsumption,
   };
+}
+
+/**
+ * Consumo acumulado do dia 1 ate hoje (ou ate o fim do mes, se ja passou).
+ * E o mesmo numero do summary, so que quebrado por dia — o cliente desenha o
+ * ritmo de gasto sem precisar das transacoes cruas.
+ */
+function computeDailyConsumption(thisM: Tx[], targetMonth: string): number[] {
+  const { to } = monthBounds(targetMonth);
+  const now = new Date();
+  const lastDay = monthKey(now) === targetMonth ? now.getDate() : to.getDate();
+
+  const perDay = new Array<number>(lastDay + 1).fill(0);
+  for (const t of thisM.filter(consumptionOut)) {
+    const day = t.date.getDate();
+    if (day <= lastDay) perDay[day] += Math.abs(t.amount);
+  }
+
+  const cumulative: number[] = [];
+  let acc = 0;
+  for (let day = 1; day <= lastDay; day++) {
+    acc += perDay[day];
+    cumulative.push(round2(acc));
+  }
+  return cumulative;
 }
 
 // ---------------------------------------------------------------------------

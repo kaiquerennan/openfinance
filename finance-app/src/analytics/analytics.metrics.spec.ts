@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { computeAnalytics } from './analytics.metrics';
+import { computeAnalytics, computeMonthlySeries } from './analytics.metrics';
 import { groupOf } from './category-groups';
 import { Tx } from './analytics.types';
 
@@ -242,6 +242,69 @@ describe('computeAnalytics — tendencias e desperdicio', () => {
 
     expect(waste.map((w) => w.label)).toContain('food delivery');
     expect(waste.find((w) => w.label === 'Taxas e juros')?.total).toBe(20);
+  });
+});
+
+describe('computeMonthlySeries', () => {
+  it('bate exatamente com o resumo do relatorio no mesmo mes', () => {
+    const all = [
+      ...salaryHistory(['2026-05', '2026-06', '2026-07']),
+      tx('2026-07-10', -500, 'groceries'),
+      tx('2026-07-11', -100, 'bank fees'),
+      tx('2026-07-12', -200, 'loans'),
+      tx('2026-07-13', -700, 'transfers'),
+      tx('2026-07-14', -300, 'gambling', 'Aposta|Casa X'),
+      tx('2026-07-15', 120, 'transfers', 'Transferencia recebida|Casa X'),
+    ];
+
+    const report = computeAnalytics(all, '2026-07');
+    const [serie] = computeMonthlySeries(all, ['2026-07']);
+
+    expect(serie.income).toBe(report.summary.income);
+    expect(serie.consumption).toBe(report.summary.consumption);
+  });
+
+  it('devolve um ponto por mes pedido, na ordem', () => {
+    const all = [
+      ...salaryHistory(['2026-05', '2026-06', '2026-07'], 1000),
+      tx('2026-05-10', -100, 'groceries'),
+      tx('2026-07-10', -300, 'groceries'),
+    ];
+
+    const serie = computeMonthlySeries(all, ['2026-05', '2026-06', '2026-07']);
+
+    expect(serie.map((p) => p.month)).toEqual(['2026-05', '2026-06', '2026-07']);
+    expect(serie.map((p) => p.consumption)).toEqual([100, 0, 300]);
+    expect(serie[2].categories[0]).toEqual({ category: 'groceries', total: 300 });
+    expect(serie[0].savings).toBe(900);
+  });
+});
+
+describe('dailyConsumption', () => {
+  it('acumula o consumo dia a dia de um mes ja encerrado', () => {
+    const all = [
+      ...salaryHistory(['2026-05', '2026-06', '2026-07']),
+      tx('2026-05-02', -50, 'groceries'),
+      tx('2026-05-05', -30, 'groceries'),
+    ];
+
+    const daily = computeAnalytics(all, '2026-05').dailyConsumption;
+
+    expect(daily).toHaveLength(31); // maio inteiro
+    expect(daily[0]).toBe(0); // dia 1, nada gasto
+    expect(daily[1]).toBe(50); // dia 2
+    expect(daily[4]).toBe(80); // dia 5, acumulado
+    expect(daily[30]).toBe(80); // segue plano ate o fim
+  });
+
+  it('termina com o consumo total do mes', () => {
+    const all = [
+      ...salaryHistory(['2026-05', '2026-06', '2026-07']),
+      tx('2026-06-10', -120, 'groceries'),
+      tx('2026-06-20', -80, 'restaurants'),
+    ];
+    const d = computeAnalytics(all, '2026-06');
+    expect(d.dailyConsumption[d.dailyConsumption.length - 1]).toBe(d.summary.consumption);
   });
 });
 

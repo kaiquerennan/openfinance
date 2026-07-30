@@ -50,6 +50,15 @@ export interface HealthScore {
   components: { label: string; points: number; max: number; note: string }[];
 }
 
+/** Agregado de um mes na serie historica (usado pelos graficos do cliente). */
+export interface MonthPoint {
+  month: string; // YYYY-MM
+  income: number;
+  consumption: number;
+  savings: number;
+  categories: { category: string; total: number }[];
+}
+
 /** Numeros calculados deterministicamente — a fonte da verdade. */
 export interface AnalyticsData {
   period: { month: string; from: string; to: string };
@@ -96,6 +105,9 @@ export interface AnalyticsData {
     /** Apostas - saques da mesma casa: positivo = ganhou liquido, negativo = perdeu liquido, null = sem atividade de apostas no mes. */
     gamblingNet: number | null;
   };
+
+  /** Consumo acumulado por dia do mes (indice 0 = dia 1), ate hoje. */
+  dailyConsumption: number[];
 }
 
 /** Saida narrativa estilo consultor (gerada por regras; futura IA pluga aqui). */

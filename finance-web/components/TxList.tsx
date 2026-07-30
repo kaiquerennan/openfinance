@@ -4,7 +4,7 @@
 // descrição, chip de categoria e valor.
 
 import { DbTransaction, dayGroupLabel, signedAmount } from "@/lib/api";
-import { txKind } from "@/lib/categories";
+import { txGroup } from "@/lib/categories";
 import { Chip, Money } from "@/components/ui";
 
 export default function TxList({
@@ -39,7 +39,7 @@ export default function TxList({
           <div className="space-y-3.5">
             {g.txs.map((t) => {
               const amt = signedAmount(t);
-              const kind = txKind(t.category, amt);
+              const kind = txGroup(t.category, amt);
               const income = kind === "income" && amt > 0;
               return (
                 <button

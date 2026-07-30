@@ -17,10 +17,8 @@ import {
   DbAccount,
   DbTransaction,
   monthRange,
-  signedAmount,
   sortAccounts,
 } from "@/lib/api";
-import { txKind } from "@/lib/categories";
 import { useDataVersion } from "@/lib/bus";
 import BlueHeader from "@/components/Header";
 import LimitSheet from "@/components/LimitSheet";
@@ -53,27 +51,24 @@ export default function HomePage() {
   const version = useDataVersion();
   const [report, setReport] = useState<AnalyticsReport | null>(null);
   const [accounts, setAccounts] = useState<DbAccount[] | null>(null);
-  const [txs, setTxs] = useState<DbTransaction[] | null>(null);
   const [recent, setRecent] = useState<DbTransaction[] | null>(null);
   const [budgets, setBudgets] = useState<Budget[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [limitOpen, setLimitOpen] = useState(false);
 
   const month = currentMonth();
-  const { from, to, daysInMonth } = monthRange(month);
+  const { daysInMonth } = monthRange(month);
 
   useEffect(() => {
     Promise.all([
       api.report(month).catch(() => null),
       api.accounts(),
-      api.transactions({ from, to, take: 1000 }),
       api.transactions({ take: 12 }),
       api.budgets(),
     ])
-      .then(([r, accs, monthTxs, latest, buds]) => {
+      .then(([r, accs, latest, buds]) => {
         setReport(r);
         setAccounts(accs);
-        setTxs(monthTxs.transactions);
         setRecent(latest.transactions);
         setBudgets(buds);
       })
@@ -86,26 +81,11 @@ export default function HomePage() {
     return g ? Number(g.amount) : null;
   }, [budgets]);
 
-  // Gasto acumulado por dia (consumo) do mês corrente
-  const { cumulative, spent, income } = useMemo(() => {
-    const today = new Date().getDate();
-    const perDay = new Array<number>(today + 1).fill(0);
-    let inc = 0;
-    for (const t of txs ?? []) {
-      const amt = signedAmount(t);
-      const kind = txKind(t.category, amt);
-      const day = new Date(t.date).getUTCDate();
-      if (kind === "consumption" && amt < 0 && day <= today) perDay[day] += -amt;
-      if (kind === "income" && amt > 0) inc += amt;
-    }
-    const cum: number[] = [];
-    let acc = 0;
-    for (let d = 1; d <= today; d++) {
-      acc += perDay[d];
-      cum.push(acc);
-    }
-    return { cumulative: cum, spent: acc, income: inc };
-  }, [txs]);
+  // Renda, consumo e ritmo diário vêm calculados do backend — a mesma conta
+  // que alimenta a análise, para a tela não mostrar um total diferente dela.
+  const cumulative = report?.data.dailyConsumption ?? [];
+  const spent = report?.data.summary.consumption ?? 0;
+  const income = report?.data.summary.income ?? 0;
 
   const over = budget !== null ? spent - budget : null;
 
@@ -132,7 +112,7 @@ export default function HomePage() {
     .filter((a) => a.type === "BANK")
     .reduce((s, a) => s + Number(a.balance ?? 0), 0);
 
-  const loading = !accounts || !txs || !recent || !budgets;
+  const loading = !accounts || !recent || !budgets;
 
   return (
     <div>

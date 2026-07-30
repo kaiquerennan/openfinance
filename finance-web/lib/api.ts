@@ -77,6 +77,17 @@ export interface AnalyticsData {
     fees: number;
     gamblingNet: number | null;
   };
+  /** Consumo acumulado por dia do mês (índice 0 = dia 1), até hoje. */
+  dailyConsumption: number[];
+}
+
+/** Agregado mensal já classificado pelo backend (fonte única dos gráficos). */
+export interface MonthPoint {
+  month: string; // YYYY-MM
+  income: number;
+  consumption: number;
+  savings: number;
+  categories: { category: string; total: number }[];
 }
 
 export interface AnalyticsNarrative {
@@ -293,6 +304,7 @@ export const api = {
   months: () => get<string[]>('/analytics/months'),
   report: (month?: string) =>
     get<AnalyticsReport>(`/analytics/report${month ? `?month=${month}` : ''}`),
+  series: (months = 12) => get<MonthPoint[]>(`/analytics/series?months=${months}`),
   askAssistant: (question: string, month?: string) =>
     post<{ answer: string }>('/assistant/ask', { question, month }),
   items: () => get<DbItem[]>('/pluggy/items'),
