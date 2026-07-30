@@ -121,6 +121,33 @@ export interface AnalyticsData {
 
   /** Custo anual dos habitos de estilo de vida, em reais e em salarios. */
   habits: HabitCost[];
+
+  /** Como o saldo deve terminar o mes. Null fora do mes corrente. */
+  outlook: MonthOutlook | null;
+}
+
+/**
+ * Projecao do saldo ate o fim do mes corrente.
+ *
+ * A projecao de longo prazo responde "quanto junto em 6 meses"; esta responde
+ * "eu chego no dia 30?", que e a pergunta que aparece primeiro quando o mes
+ * aperta.
+ */
+export interface MonthOutlook {
+  today: number;
+  daysInMonth: number;
+  /** Saldo em conta corrente hoje. */
+  currentBalance: number;
+  /** Consumo medio por dia decorrido no mes. */
+  dailyRate: number;
+  /** Recorrencias que ainda devem ser cobradas ate o fim do mes. */
+  upcomingFixed: { description: string; day: number; amount: number }[];
+  /** Saldo projetado de hoje ate o ultimo dia (indice 0 = hoje). */
+  projected: number[];
+  endBalance: number;
+  lowestBalance: number;
+  /** Primeiro dia do mes em que o saldo fica negativo, se acontecer. */
+  negativeFromDay: number | null;
 }
 
 /**
@@ -185,6 +212,7 @@ export interface AnalyticsNarrative {
   estiloDeVida: string[];
   custoDosHabitos: string[];
   reserva: string[];
+  fimDoMes: string[];
   previsoes: string[];
   indiceSaude: string[];
   insightsAutomaticos: string[];

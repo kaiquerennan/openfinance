@@ -32,6 +32,7 @@ export class RuleBasedNarrator implements InsightNarrator {
       estiloDeVida: this.estiloDeVida(d),
       custoDosHabitos: this.custoDosHabitos(d),
       reserva: this.reserva(d),
+      fimDoMes: this.fimDoMes(d),
       previsoes: this.previsoes(d),
       indiceSaude: this.saude(d),
       insightsAutomaticos: this.insights(d),
@@ -291,6 +292,32 @@ export class RuleBasedNarrator implements InsightNarrator {
       out.push(
         'Antes de investir em qualquer outra coisa, junte pelo menos um mês de custo de vida — é o que evita ter que recorrer ao cartão num imprevisto.',
       );
+    return out;
+  }
+
+  /** Fechamento do mes em curso — a pergunta "eu chego no dia 30?". */
+  private fimDoMes(d: AnalyticsData): string[] {
+    const o = d.outlook;
+    if (!o) return ['A projeção do mês só aparece durante o mês em curso.'];
+
+    const restantes = o.daysInMonth - o.today;
+    const out = [
+      `Você tem ${brl(o.currentBalance)} em conta e faltam ${restantes} ${restantes === 1 ? 'dia' : 'dias'} para o fim do mês.`,
+      `No ritmo de ${brl(o.dailyRate)} por dia, deve fechar o mês com ${brl(o.endBalance)}.`,
+    ];
+
+    if (o.upcomingFixed.length) {
+      const total = o.upcomingFixed.reduce((a, b) => a + b.amount, 0);
+      out.push(
+        `Ainda devem cair ${o.upcomingFixed.length} ${o.upcomingFixed.length === 1 ? 'conta fixa' : 'contas fixas'} somando ${brl(total)}.`,
+      );
+    }
+
+    if (o.negativeFromDay != null)
+      out.push(
+        `Atenção: nesse ritmo o saldo fica negativo a partir do dia ${o.negativeFromDay}. Para chegar no fim do mês no zero, o gasto diário precisa cair para ${brl(Math.max(o.currentBalance / Math.max(restantes, 1), 0))}.`,
+      );
+
     return out;
   }
 

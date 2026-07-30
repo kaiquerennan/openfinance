@@ -258,6 +258,73 @@ function computeHabits(
     .slice(0, 5);
 }
 
+/**
+ * Projeta o saldo dia a dia ate o fim do mes corrente.
+ *
+ * Combina o ritmo de gasto ja observado no mes com as recorrencias que ainda
+ * devem cair. So faz sentido para o mes em curso — em mes fechado nao ha o
+ * que projetar, e a funcao devolve null.
+ */
+function computeOutlook(
+  thisM: Tx[],
+  targetMonth: string,
+  bankBalance: number,
+  subscriptions: Subscription[],
+): AnalyticsData['outlook'] {
+  const now = new Date();
+  if (monthKey(now) !== targetMonth) return null;
+
+  const today = dayOfMonth(now);
+  const total = daysInMonth(targetMonth);
+  const remaining = total - today;
+
+  const spentSoFar = sum(
+    thisM.filter(consumptionOut).map((t) => Math.abs(t.amount)),
+  );
+  const dailyRate = round2(spentSoFar / today);
+
+  // Recorrencias com dia de cobranca ainda a vir neste mes.
+  const upcomingFixed = subscriptions
+    .map((s) => ({
+      description: s.description,
+      day: Number(s.lastDate.split('-')[2]),
+      amount: s.monthlyAmount,
+    }))
+    .filter((s) => s.day > today && s.day <= total)
+    .sort((a, b) => a.day - b.day);
+
+  const projected: number[] = [];
+  let balance = bankBalance;
+  let lowest = bankBalance;
+  let negativeFromDay: number | null = balance < 0 ? today : null;
+
+  for (let offset = 0; offset <= remaining; offset++) {
+    const day = today + offset;
+    if (offset > 0) {
+      balance -= dailyRate;
+      for (const fixed of upcomingFixed.filter((f) => f.day === day)) {
+        balance -= fixed.amount;
+      }
+    }
+    balance = round2(balance);
+    projected.push(balance);
+    if (balance < lowest) lowest = balance;
+    if (balance < 0 && negativeFromDay === null) negativeFromDay = day;
+  }
+
+  return {
+    today,
+    daysInMonth: total,
+    currentBalance: round2(bankBalance),
+    dailyRate,
+    upcomingFixed,
+    projected,
+    endBalance: projected[projected.length - 1] ?? round2(bankBalance),
+    lowestBalance: round2(lowest),
+    negativeFromDay,
+  };
+}
+
 /** Meses de custo de vida considerados uma reserva de emergencia completa. */
 const RESERVE_TARGET_MONTHS = 6;
 
@@ -327,11 +394,20 @@ function computeReserve(
   };
 }
 
+/** Saldos vindos das contas — o calculo em si nao consulta o banco. */
+export interface Balances {
+  /** Conta corrente + investimentos ativos (base da reserva de emergencia). */
+  liquid?: number;
+  /** So conta corrente (base da projecao de saldo do mes). */
+  bank?: number;
+}
+
 export function computeAnalytics(
   rawAll: Tx[],
   targetMonth: string,
-  liquidAssets = 0,
+  balances: Balances = {},
 ): AnalyticsData {
+  const liquidAssets = balances.liquid ?? 0;
   const all = netGamblingCashouts(rawAll);
   const gamblingNet = computeGamblingNet(
     rawAll.filter((t) => inMonth(t, targetMonth)),
@@ -455,6 +531,7 @@ export function computeAnalytics(
     reserve: computeReserve(all, targetMonth, liquidAssets),
     lifestyle: computeLifestyle(thisM, income, incomeReliable),
     habits: computeHabits(all, targetMonth, income, incomeReliable),
+    outlook: computeOutlook(thisM, targetMonth, balances.bank ?? 0, subscriptions.items),
   };
 }
 

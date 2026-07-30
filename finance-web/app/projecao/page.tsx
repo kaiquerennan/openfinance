@@ -18,6 +18,7 @@ import {
 import { useDataVersion } from "@/lib/bus";
 import BlueHeader from "@/components/Header";
 import { ProjectionChart } from "@/components/Charts";
+import MonthOutlookCard from "@/components/MonthOutlookCard";
 import { Amount, Card, ErrorCard, LoadingCard, TipCarousel } from "@/components/ui";
 
 const MONTHS_AHEAD = 6;
@@ -103,10 +104,13 @@ export default function ProjecaoPage() {
           <div className="rise space-y-4">
             <TipCarousel
               tips={[
+                ...(report?.narrative.fimDoMes ?? []),
                 ...(report?.narrative.previsoes ?? []),
                 ...(report?.narrative.oportunidades ?? []),
               ]}
             />
+
+            <MonthOutlookCard outlook={report?.data.outlook} />
 
             <Card>
               <ProjectionChart points={points} />

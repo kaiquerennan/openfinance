@@ -412,7 +412,7 @@ describe('reserva de emergencia', () => {
   ];
 
   it('converte o dinheiro disponivel em meses de custo de vida', () => {
-    const r = computeAnalytics(historico, '2026-07', 3000).reserve;
+    const r = computeAnalytics(historico, '2026-07', { liquid: 3000 }).reserve;
     expect(r.monthlyCost).toBe(1000);
     expect(r.months).toBe(3);
     expect(r.status).toBe('boa');
@@ -420,13 +420,13 @@ describe('reserva de emergencia', () => {
   });
 
   it('marca como completa quem ja tem o alvo de meses', () => {
-    const r = computeAnalytics(historico, '2026-07', 6000).reserve;
+    const r = computeAnalytics(historico, '2026-07', { liquid: 6000 }).reserve;
     expect(r.status).toBe('completa');
     expect(r.missing).toBe(0);
   });
 
   it('marca como sem reserva quem nao cobre nem um mes', () => {
-    const r = computeAnalytics(historico, '2026-07', 500).reserve;
+    const r = computeAnalytics(historico, '2026-07', { liquid: 500 }).reserve;
     expect(r.months).toBe(0.5);
     expect(r.status).toBe('sem-reserva');
   });
@@ -444,13 +444,13 @@ describe('reserva de emergencia', () => {
   });
 
   it('fica indefinida quando nao ha historico de gastos', () => {
-    const r = computeAnalytics(salaryHistory(['2026-07']), '2026-07', 5000).reserve;
+    const r = computeAnalytics(salaryHistory(['2026-07']), '2026-07', { liquid: 5000 }).reserve;
     expect(r.status).toBe('indefinido');
     expect(r.months).toBeNull();
   });
 
   it('nao considera saldo negativo como reserva', () => {
-    expect(computeAnalytics(historico, '2026-07', -800).reserve.liquidAssets).toBe(0);
+    expect(computeAnalytics(historico, '2026-07', { liquid: -800 }).reserve.liquidAssets).toBe(0);
   });
 });
 
@@ -514,5 +514,52 @@ describe('custo anual dos habitos', () => {
       tx('2026-07-10', -200, 'restaurants'),
     ];
     expect(computeAnalytics(all, '2026-07').habits[0].inSalaries).toBeNull();
+  });
+});
+
+describe('projecao do saldo do mes', () => {
+  /** A projecao so existe para o mes em curso, entao os casos usam hoje. */
+  const hoje = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
+  const nowMonth = hoje.slice(0, 7);
+  const today = Number(hoje.slice(8, 10));
+
+  it('nao projeta nada para um mes ja fechado', () => {
+    const all = [
+      ...salaryHistory(['2026-05', '2026-06']),
+      tx('2026-05-10', -100, 'groceries'),
+    ];
+    expect(computeAnalytics(all, '2026-05').outlook).toBeNull();
+  });
+
+  it('projeta o saldo caindo no ritmo de gasto ate o fim do mes', () => {
+    const all = [tx(`${nowMonth}-01`, -30 * today, 'groceries')];
+
+    const o = computeAnalytics(all, nowMonth, { bank: 1000 }).outlook!;
+
+    expect(o.currentBalance).toBe(1000);
+    expect(o.dailyRate).toBe(30); // gastou 30/dia ate hoje
+    expect(o.projected[0]).toBe(1000); // hoje
+    expect(o.projected).toHaveLength(o.daysInMonth - o.today + 1);
+    expect(o.endBalance).toBeCloseTo(1000 - 30 * (o.daysInMonth - o.today), 1);
+    expect(o.lowestBalance).toBe(o.endBalance);
+  });
+
+  it('aponta o dia em que o saldo fica negativo', () => {
+    const all = [tx(`${nowMonth}-01`, -100 * today, 'groceries')];
+
+    const o = computeAnalytics(all, nowMonth, { bank: 150 }).outlook!;
+
+    expect(o.dailyRate).toBe(100);
+    if (o.daysInMonth - o.today >= 2) {
+      expect(o.negativeFromDay).toBe(o.today + 2); // 150 -> 50 -> -50
+      expect(o.endBalance).toBeLessThan(0);
+    }
+  });
+
+  it('nao acusa saldo negativo quando o dinheiro dura o mes inteiro', () => {
+    const all = [tx(`${nowMonth}-01`, -1 * today, 'groceries')];
+    const o = computeAnalytics(all, nowMonth, { bank: 100000 }).outlook!;
+    expect(o.negativeFromDay).toBeNull();
+    expect(o.endBalance).toBeGreaterThan(0);
   });
 });

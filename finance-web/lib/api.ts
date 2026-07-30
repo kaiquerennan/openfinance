@@ -85,6 +85,20 @@ export interface AnalyticsData {
   reserve: ReserveStatus;
   lifestyle: LifestyleSplit;
   habits: HabitCost[];
+  outlook: MonthOutlook | null;
+}
+
+/** Projeção do saldo até o fim do mês corrente (null fora dele). */
+export interface MonthOutlook {
+  today: number;
+  daysInMonth: number;
+  currentBalance: number;
+  dailyRate: number;
+  upcomingFixed: { description: string; day: number; amount: number }[];
+  projected: number[];
+  endBalance: number;
+  lowestBalance: number;
+  negativeFromDay: number | null;
 }
 
 /** Custo anual de um hábito, e quantos salários ele representa. */
@@ -138,6 +152,7 @@ export interface AnalyticsNarrative {
   estiloDeVida: string[];
   custoDosHabitos: string[];
   reserva: string[];
+  fimDoMes: string[];
   previsoes: string[];
   indiceSaude: string[];
   insightsAutomaticos: string[];

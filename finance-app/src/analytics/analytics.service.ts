@@ -1,7 +1,12 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { groupOf } from './category-groups';
-import { computeAnalytics, computeMonthlySeries, monthKey } from './analytics.metrics';
+import {
+  Balances,
+  computeAnalytics,
+  computeMonthlySeries,
+  monthKey,
+} from './analytics.metrics';
 import { RuleBasedNarrator, InsightNarrator } from './narrator';
 import { AnalyticsReport, MonthPoint, Tx } from './analytics.types';
 
@@ -50,11 +55,7 @@ export class AnalyticsService {
     this.logger.log(
       `Analise do mes ${targetMonth} sobre ${snap.tx.length} transacoes${accountId ? ` (conta ${accountId})` : ''}.`,
     );
-    const data = computeAnalytics(
-      snap.tx,
-      targetMonth,
-      await this.liquidAssets(accountId),
-    );
+    const data = computeAnalytics(snap.tx, targetMonth, await this.balances(accountId));
     const report = { data, narrative: this.narrator.narrate(data) };
     snap.reports.set(targetMonth, report);
     return report;
@@ -86,11 +87,14 @@ export class AnalyticsService {
   // ---------------------------------------------------------------------------
 
   /**
-   * Dinheiro que da pra usar hoje: saldo das contas correntes mais os
-   * investimentos ativos. Fatura de cartao (type CREDIT) fica de fora — e
-   * divida, nao reserva.
+   * Saldos que a analise usa. Fatura de cartao (type CREDIT) fica de fora dos
+   * dois: e divida, nao dinheiro disponivel.
+   *
+   * `bank` e so a conta corrente — e o que paga as contas do mes. `liquid`
+   * soma os investimentos ativos, que servem de reserva mas nao entram na
+   * projecao do dia a dia.
    */
-  private async liquidAssets(accountId?: string): Promise<number> {
+  private async balances(accountId?: string): Promise<Balances> {
     const [accounts, investments] = await Promise.all([
       this.prisma.account.findMany({
         where: { type: 'BANK', id: accountId || undefined },
@@ -103,11 +107,11 @@ export class AnalyticsService {
             select: { balance: true },
           }),
     ]);
-    const total = [...accounts, ...investments].reduce(
-      (sum, row) => sum + Number(row.balance ?? 0),
-      0,
-    );
-    return total;
+    const total = (rows: { balance: unknown }[]) =>
+      rows.reduce((sum, row) => sum + Number(row.balance ?? 0), 0);
+
+    const bank = total(accounts);
+    return { bank, liquid: bank + total(investments) };
   }
 
   /** Foto atual do extrato, reaproveitada enquanto o banco nao mudar. */
