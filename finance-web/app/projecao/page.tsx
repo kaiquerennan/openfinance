@@ -19,6 +19,7 @@ import { useDataVersion } from "@/lib/bus";
 import BlueHeader from "@/components/Header";
 import { ProjectionChart } from "@/components/Charts";
 import MonthOutlookCard from "@/components/MonthOutlookCard";
+import CompoundSimulator from "@/components/CompoundSimulator";
 import { Amount, Card, ErrorCard, LoadingCard, TipCarousel } from "@/components/ui";
 
 const MONTHS_AHEAD = 6;
@@ -111,6 +112,8 @@ export default function ProjecaoPage() {
             />
 
             <MonthOutlookCard outlook={report?.data.outlook} />
+
+            <CompoundSimulator habits={report?.data.habits} />
 
             <Card>
               <ProjectionChart points={points} />
