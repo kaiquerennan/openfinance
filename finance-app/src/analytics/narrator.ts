@@ -11,6 +11,7 @@ export interface InsightNarrator {
 
 const brl = (n: number) =>
   `R$ ${n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const round = (n: number) => Math.round(n);
 const signed = (n: number | null) =>
   n == null ? 's/ base' : `${n > 0 ? '+' : ''}${n}%`;
 
@@ -28,6 +29,7 @@ export class RuleBasedNarrator implements InsightNarrator {
       desperdicios: this.desperdicios(d),
       alertas: this.alertas(d),
       oportunidades: this.oportunidades(d),
+      estiloDeVida: this.estiloDeVida(d),
       reserva: this.reserva(d),
       previsoes: this.previsoes(d),
       indiceSaude: this.saude(d),
@@ -204,6 +206,40 @@ export class RuleBasedNarrator implements InsightNarrator {
     if (gambling)
       out.push(`Cortar apostas economizaria ${brl(gambling.total)}/mês.`);
     return out.length ? out : ['Sem oportunidades óbvias de economia neste período.'];
+  }
+
+  /** Consumo dividido entre custo de viver e escolha, na régua 50/30/20. */
+  private estiloDeVida(d: AnalyticsData): string[] {
+    const l = d.lifestyle;
+    const total = l.essential + l.lifestyle;
+    if (total <= 0) return ['Sem consumo registrado no período para separar.'];
+
+    const out = [
+      `Do seu consumo, ${brl(l.essential)} são custo de viver e ${brl(l.lifestyle)} são escolhas que dá pra ajustar.`,
+    ];
+
+    if (l.essentialPct != null && l.lifestylePct != null && l.savedPct != null) {
+      out.push(
+        `Na régua 50/30/20 isso é ${l.essentialPct}% essencial, ${l.lifestylePct}% estilo de vida e ${l.savedPct}% guardado (a referência é 50/30/20).`,
+      );
+      if (l.lifestylePct > 30)
+        out.push(
+          `Estilo de vida está ${round(l.lifestylePct - 30)} pontos acima da referência — é aqui que mora a folga para poupar mais.`,
+        );
+      if (l.savedPct < 20)
+        out.push(
+          `Você guardou ${l.savedPct}% da renda; chegar a 20% significaria separar ${brl((d.summary.income * 20) / 100)} por mês.`,
+        );
+    }
+
+    if (l.topLifestyle.length)
+      out.push(
+        `As maiores escolhas do mês: ${l.topLifestyle
+          .slice(0, 3)
+          .map((c) => `${c.category} (${brl(c.total)})`)
+          .join(', ')}.`,
+      );
+    return out;
   }
 
   /** Reserva de emergencia traduzida em meses de tranquilidade. */

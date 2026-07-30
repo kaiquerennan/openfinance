@@ -83,6 +83,17 @@ export interface AnalyticsData {
   /** Consumo acumulado por dia do mês (índice 0 = dia 1), até hoje. */
   dailyConsumption: number[];
   reserve: ReserveStatus;
+  lifestyle: LifestyleSplit;
+}
+
+/** Consumo dividido entre custo de viver e escolha (régua 50/30/20). */
+export interface LifestyleSplit {
+  essential: number;
+  lifestyle: number;
+  essentialPct: number | null;
+  lifestylePct: number | null;
+  savedPct: number | null;
+  topLifestyle: { category: string; total: number }[];
 }
 
 /** Reserva de emergência medida em meses de custo de vida. */
@@ -115,6 +126,7 @@ export interface AnalyticsNarrative {
   desperdicios: string[];
   alertas: string[];
   oportunidades: string[];
+  estiloDeVida: string[];
   reserva: string[];
   previsoes: string[];
   indiceSaude: string[];

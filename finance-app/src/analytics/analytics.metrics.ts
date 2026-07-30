@@ -7,7 +7,7 @@ import {
   TrendPoint,
   Tx,
 } from './analytics.types';
-import { WASTE_CATEGORIES } from './category-groups';
+import { consumptionKindOf, WASTE_CATEGORIES } from './category-groups';
 import {
   addMonths,
   dateKey,
@@ -159,6 +159,44 @@ export function computeMonthlySeries(rawAll: Tx[], months: string[]): MonthPoint
         .sort((a, b) => b.total - a.total),
     };
   });
+}
+
+/**
+ * Separa o consumo do mes entre o que e custo de viver e o que e escolha.
+ * Os percentuais so fazem sentido com uma renda confiavel — sem isso, ficam
+ * nulos e a tela mostra apenas os valores absolutos.
+ */
+function computeLifestyle(
+  thisM: Tx[],
+  income: number,
+  incomeReliable: boolean,
+): AnalyticsData['lifestyle'] {
+  let essential = 0;
+  let lifestyle = 0;
+  const byCat = new Map<string, number>();
+
+  for (const t of thisM.filter(consumptionOut)) {
+    const value = Math.abs(t.amount);
+    if (consumptionKindOf(t.category) === 'essencial') {
+      essential += value;
+    } else {
+      lifestyle += value;
+      byCat.set(t.category, (byCat.get(t.category) ?? 0) + value);
+    }
+  }
+
+  const usable = incomeReliable && income > 0;
+  return {
+    essential: round2(essential),
+    lifestyle: round2(lifestyle),
+    essentialPct: usable ? pct(essential, income) : null,
+    lifestylePct: usable ? pct(lifestyle, income) : null,
+    savedPct: usable ? pct(income - essential - lifestyle, income) : null,
+    topLifestyle: [...byCat.entries()]
+      .map(([category, total]) => ({ category, total: round2(total) }))
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 5),
+  };
 }
 
 /** Meses de custo de vida considerados uma reserva de emergencia completa. */
@@ -356,6 +394,7 @@ export function computeAnalytics(
     movements,
     dailyConsumption,
     reserve: computeReserve(all, targetMonth, liquidAssets),
+    lifestyle: computeLifestyle(thisM, income, incomeReliable),
   };
 }
 

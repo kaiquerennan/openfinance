@@ -4,32 +4,28 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
+  AnalyticsReport,
   api,
   brl0,
   Budget,
   currentMonth,
-  DbTransaction,
   monthLabel,
-  monthRange,
-  signedAmount,
 } from "@/lib/api";
-import { catColor, catMeta, txGroup } from "@/lib/categories";
+import { catColor, catMeta } from "@/lib/categories";
 import { useDataVersion } from "@/lib/bus";
 import BlueHeader from "@/components/Header";
 import LimitSheet from "@/components/LimitSheet";
+import LifestyleCard from "@/components/LifestyleCard";
 import { Amount, ErrorCard, LoadingCard, Money, MonthNav } from "@/components/ui";
 
 export default function CategoriasPage() {
   const version = useDataVersion();
   const [months, setMonths] = useState<string[]>([]);
   const [month, setMonth] = useState(currentMonth());
-  const [monthData, setMonthData] = useState<{
-    month: string;
-    txs: DbTransaction[];
-  } | null>(null);
   const [budgets, setBudgets] = useState<Budget[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [limitCat, setLimitCat] = useState<string | null>(null);
+  const [report, setReport] = useState<AnalyticsReport | null>(null);
 
   useEffect(() => {
     api
@@ -40,30 +36,24 @@ export default function CategoriasPage() {
   }, [version]);
 
   useEffect(() => {
-    const { from, to } = monthRange(month);
-    api
-      .transactions({ from, to, take: 1000 })
-      .then((p) => setMonthData({ month, txs: p.transactions }))
-      .catch((e) => setError(e.message));
+    setReport(null);
+    api.report(month).then(setReport).catch((e) => setError(e.message));
   }, [month, version]);
 
-  const txs = monthData?.month === month ? monthData.txs : null;
-
+  // Os totais por categoria vêm do relatório, não das transações cruas: assim
+  // o abatimento de apostas e a exclusão de taxas/dívidas já vêm aplicados e
+  // o número aqui bate com o da análise e o da home.
   const byCategory = useMemo(() => {
-    const map = new Map<string, number>();
-    for (const t of txs ?? []) {
-      const amt = signedAmount(t);
-      if (txGroup(t.category, amt) !== "consumption" || amt >= 0) continue;
-      const key = (t.category ?? "sem categoria").toLowerCase();
-      map.set(key, (map.get(key) ?? 0) + -amt);
-    }
+    const map = new Map<string, number>(
+      (report?.data.categories ?? []).map((c) => [c.category.toLowerCase(), c.total]),
+    );
     // categorias com limite definido aparecem mesmo sem gasto no mês
     for (const b of budgets ?? [])
       if (b.category !== "_global" && !map.has(b.category)) map.set(b.category, 0);
     return [...map.entries()]
       .map(([category, total]) => ({ category, total }))
       .sort((a, b) => b.total - a.total);
-  }, [txs, budgets]);
+  }, [report, budgets]);
 
   const catBudget = (cat: string) => {
     const b = budgets?.find((x) => x.category === cat);
@@ -85,7 +75,10 @@ export default function CategoriasPage() {
 
       <div className="px-4 mt-5">
         {error && <ErrorCard message={error} />}
-        {!txs || !budgets ? (
+        <div className="mb-4">
+          <LifestyleCard lifestyle={report?.data.lifestyle} />
+        </div>
+        {!report || !budgets ? (
           <LoadingCard />
         ) : (
           <div className="rise">

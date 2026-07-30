@@ -52,6 +52,14 @@ function data(patch: Partial<AnalyticsData> = {}): AnalyticsData {
       missing: 0,
       status: 'completa',
     },
+    lifestyle: {
+      essential: 600,
+      lifestyle: 400,
+      essentialPct: 20,
+      lifestylePct: 13,
+      savedPct: 67,
+      topLifestyle: [],
+    },
     ...patch,
   };
 }
@@ -63,6 +71,8 @@ function sub(description: string, monthlyAmount: number, monthsSeen: number): Su
     monthsSeen,
     annualEstimate: monthlyAmount * 12,
     lastDate: '2026-07-08',
+    currentAmount: monthlyAmount,
+    increasePct: null,
   };
 }
 

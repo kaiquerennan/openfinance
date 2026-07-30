@@ -115,6 +115,24 @@ export interface AnalyticsData {
 
   /** Quanto tempo o dinheiro disponivel sustenta o padrao de vida atual. */
   reserve: ReserveStatus;
+
+  /** Consumo separado entre custo de viver e escolhas (visao 50/30/20). */
+  lifestyle: LifestyleSplit;
+}
+
+/**
+ * Quebra do consumo em essencial x estilo de vida, comparada com a referencia
+ * 50/30/20 (50% essencial, 30% estilo de vida, 20% poupanca).
+ */
+export interface LifestyleSplit {
+  essential: number;
+  lifestyle: number;
+  /** % da renda em cada bloco. null quando a renda nao e confiavel. */
+  essentialPct: number | null;
+  lifestylePct: number | null;
+  savedPct: number | null;
+  /** Categorias de estilo de vida, da maior para a menor. */
+  topLifestyle: { category: string; total: number }[];
 }
 
 /**
@@ -148,6 +166,7 @@ export interface AnalyticsNarrative {
   desperdicios: string[];
   alertas: string[];
   oportunidades: string[];
+  estiloDeVida: string[];
   reserva: string[];
   previsoes: string[];
   indiceSaude: string[];

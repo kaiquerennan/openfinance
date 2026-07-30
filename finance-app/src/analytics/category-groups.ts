@@ -46,6 +46,72 @@ const GROUP_BY_CATEGORY: Record<string, CatGroup> = {
   paycheck: 'income',
 };
 
+/**
+ * Dentro do consumo, o que e custo de viver e o que e escolha.
+ *
+ * A lista de 20 categorias da Pluggy nao responde "da pra cortar quanto?".
+ * Esta divisao responde: essencial e o que continuaria existindo num mes
+ * apertado; estilo de vida e o que da pra reduzir por decisao.
+ */
+export type ConsumptionKind = 'essencial' | 'estilo-de-vida';
+
+const ESSENTIAL_CATEGORIES = new Set([
+  'groceries',
+  'supermarket',
+  'rent',
+  'utilities',
+  'electricity',
+  'telecommunications',
+  'internet',
+  'health',
+  'pharmacy',
+  'education',
+  'university',
+  'public transportation',
+  'mobility',
+  'gas stations',
+  'tolls',
+  'parking',
+  'taxes',
+  'pet supplies',
+]);
+
+/**
+ * Categoria desconhecida cai em essencial: e mais honesto subestimar o quanto
+ * da pra cortar do que prometer uma economia que talvez nao exista.
+ */
+export function consumptionKindOf(category: string | null): ConsumptionKind {
+  const key = (category ?? '').trim().toLowerCase();
+  if (ESSENTIAL_CATEGORIES.has(key)) return 'essencial';
+  return LIFESTYLE_CATEGORIES.has(key) ? 'estilo-de-vida' : 'essencial';
+}
+
+const LIFESTYLE_CATEGORIES = new Set([
+  'restaurants',
+  'eating out',
+  'food and drinks',
+  'food delivery',
+  'fast food',
+  'shopping',
+  'clothing',
+  'electronics',
+  'entertainment',
+  'streaming',
+  'digital services',
+  'services',
+  'leisure',
+  'travel',
+  'accommodation',
+  'accomodation',
+  'airfare',
+  'cinema, theater and concerts',
+  'gambling',
+  'gyms',
+  'sports goods',
+  'gifts',
+  'taxi and ride-hailing',
+]);
+
 /** Categorias de consumo que costumam indicar potencial desperdicio. */
 export const WASTE_CATEGORIES = new Set([
   'food delivery',

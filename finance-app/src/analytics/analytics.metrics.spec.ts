@@ -359,6 +359,48 @@ describe('dailyConsumption', () => {
   });
 });
 
+describe('essencial vs estilo de vida', () => {
+  it('separa custo de viver de escolhas e mede na regua 50/30/20', () => {
+    const all = [
+      ...salaryHistory(['2026-05', '2026-06', '2026-07'], 1000),
+      tx('2026-07-02', -400, 'rent'),
+      tx('2026-07-03', -100, 'groceries'),
+      tx('2026-07-04', -200, 'restaurants'),
+      tx('2026-07-05', -100, 'shopping'),
+    ];
+
+    const l = computeAnalytics(all, '2026-07').lifestyle;
+
+    expect(l.essential).toBe(500); // aluguel + mercado
+    expect(l.lifestyle).toBe(300); // restaurante + compras
+    expect(l.essentialPct).toBe(50);
+    expect(l.lifestylePct).toBe(30);
+    expect(l.savedPct).toBe(20);
+    expect(l.topLifestyle[0]).toEqual({ category: 'restaurants', total: 200 });
+  });
+
+  it('nao calcula percentuais sem uma renda confiavel', () => {
+    const all = [
+      tx('2026-07-01', 5000, 'transfers', 'Pix recebido'),
+      tx('2026-07-04', -200, 'restaurants'),
+    ];
+    const l = computeAnalytics(all, '2026-07').lifestyle;
+    expect(l.lifestyle).toBe(200);
+    expect(l.lifestylePct).toBeNull();
+    expect(l.savedPct).toBeNull();
+  });
+
+  it('trata categoria desconhecida como essencial para nao prometer economia falsa', () => {
+    const all = [
+      ...salaryHistory(['2026-05', '2026-06', '2026-07'], 1000),
+      tx('2026-07-04', -300, 'categoria que nao existe'),
+    ];
+    const l = computeAnalytics(all, '2026-07').lifestyle;
+    expect(l.essential).toBe(300);
+    expect(l.lifestyle).toBe(0);
+  });
+});
+
 describe('reserva de emergencia', () => {
   /** Tres meses fechados de R$ 1.000 de consumo, mes-alvo tambem fechado. */
   const historico = [
