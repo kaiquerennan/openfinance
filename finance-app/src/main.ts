@@ -1,11 +1,17 @@
 import { NestFactory } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+
+  // Em producao o app fica atras do proxy da plataforma; sem isto todo
+  // request chega com o IP do proxy e o limite de tentativas de login seria
+  // compartilhado por todo mundo. Confia em um unico salto.
+  app.set('trust proxy', 1);
 
   app.use(cookieParser());
   app.useGlobalPipes(

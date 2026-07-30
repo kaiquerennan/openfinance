@@ -7,6 +7,7 @@ import {
   Res,
   UnauthorizedException,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { Response } from 'express';
 import * as jwt from 'jsonwebtoken';
 import * as crypto from 'crypto';
@@ -15,16 +16,31 @@ import { Public } from './public.decorator';
 const SESSION_COOKIE = 'session';
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 
+/**
+ * Compara a senha em tempo constante.
+ *
+ * Passa os dois lados por SHA-256 antes de comparar: alem de igualar o
+ * tamanho (timingSafeEqual exige buffers do mesmo tamanho), evita que o
+ * tempo de resposta denuncie o comprimento da senha correta.
+ */
 function passwordMatches(input: string | undefined): boolean {
   const expected = process.env.APP_PASSWORD ?? '';
-  if (!expected || !input || input.length !== expected.length) return false;
-  return crypto.timingSafeEqual(Buffer.from(input), Buffer.from(expected));
+  if (!expected) return false;
+  const digest = (value: string) =>
+    crypto.createHash('sha256').update(value, 'utf8').digest();
+  return crypto.timingSafeEqual(digest(input ?? ''), digest(expected));
 }
 
 @Controller('auth')
 export class AuthController {
-  /** POST /auth/login — { password } -> seta cookie de sessao (30 dias). */
+  /**
+   * POST /auth/login — { password } -> seta cookie de sessao (30 dias).
+   *
+   * O app inteiro e protegido por uma senha unica, entao o login e o unico
+   * alvo que vale a pena atacar: no maximo 5 tentativas por minuto por IP.
+   */
   @Public()
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @Post('login')
   @HttpCode(200)
   login(
