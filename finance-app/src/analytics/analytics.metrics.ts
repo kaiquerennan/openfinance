@@ -199,6 +199,65 @@ function computeLifestyle(
   };
 }
 
+/** Mediana de uma lista (0 se vazia). */
+function median(values: number[]): number {
+  if (!values.length) return 0;
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+}
+
+/**
+ * Projeta no ano o custo dos habitos de estilo de vida.
+ *
+ * Usa a mediana dos ultimos meses e nao o mes atual: um mes fora da curva
+ * viraria uma projecao anual absurda, e o objetivo aqui e dar uma referencia
+ * confiavel de quanto o habito custa quando repetido o ano inteiro.
+ */
+function computeHabits(
+  all: Tx[],
+  targetMonth: string,
+  income: number,
+  incomeReliable: boolean,
+): AnalyticsData['habits'] {
+  const months = Array.from({ length: 6 }, (_, i) => addMonths(targetMonth, -i));
+  const spentByCatMonth = new Map<string, Map<string, number>>();
+
+  for (const t of all.filter(consumptionOut)) {
+    const month = monthKey(t.date);
+    if (!months.includes(month)) continue;
+    if (consumptionKindOf(t.category) !== 'estilo-de-vida') continue;
+    const perMonth = spentByCatMonth.get(t.category) ?? new Map<string, number>();
+    perMonth.set(month, (perMonth.get(month) ?? 0) + Math.abs(t.amount));
+    spentByCatMonth.set(t.category, perMonth);
+  }
+
+  // Renda mensal tipica: mediana dos meses da janela com entrada registrada.
+  const monthlyIncome = median(
+    months
+      .map((m) =>
+        sum(all.filter((t) => incomeIn(t) && monthKey(t.date) === m).map((t) => t.amount)),
+      )
+      .filter((v) => v > 0),
+  );
+  const usable = incomeReliable && monthlyIncome > 0;
+
+  return [...spentByCatMonth.entries()]
+    .map(([category, perMonth]) => {
+      const monthly = round2(median([...perMonth.values()]));
+      const annual = round2(monthly * 12);
+      return {
+        category,
+        monthly,
+        annual,
+        inSalaries: usable ? round2(annual / monthlyIncome) : null,
+      };
+    })
+    .filter((h) => h.monthly > 0)
+    .sort((a, b) => b.annual - a.annual)
+    .slice(0, 5);
+}
+
 /** Meses de custo de vida considerados uma reserva de emergencia completa. */
 const RESERVE_TARGET_MONTHS = 6;
 
@@ -395,6 +454,7 @@ export function computeAnalytics(
     dailyConsumption,
     reserve: computeReserve(all, targetMonth, liquidAssets),
     lifestyle: computeLifestyle(thisM, income, incomeReliable),
+    habits: computeHabits(all, targetMonth, income, incomeReliable),
   };
 }
 

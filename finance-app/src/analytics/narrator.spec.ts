@@ -60,6 +60,7 @@ function data(patch: Partial<AnalyticsData> = {}): AnalyticsData {
       savedPct: 67,
       topLifestyle: [],
     },
+    habits: [],
     ...patch,
   };
 }

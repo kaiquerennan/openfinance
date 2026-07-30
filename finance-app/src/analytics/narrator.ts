@@ -30,6 +30,7 @@ export class RuleBasedNarrator implements InsightNarrator {
       alertas: this.alertas(d),
       oportunidades: this.oportunidades(d),
       estiloDeVida: this.estiloDeVida(d),
+      custoDosHabitos: this.custoDosHabitos(d),
       reserva: this.reserva(d),
       previsoes: this.previsoes(d),
       indiceSaude: this.saude(d),
@@ -240,6 +241,19 @@ export class RuleBasedNarrator implements InsightNarrator {
           .join(', ')}.`,
       );
     return out;
+  }
+
+  /** O mesmo hábito, medido no ano — a escala em que ele realmente pesa. */
+  private custoDosHabitos(d: AnalyticsData): string[] {
+    if (!d.habits.length)
+      return ['Sem hábitos de estilo de vida recorrentes o bastante para projetar no ano.'];
+
+    return d.habits.map((h) => {
+      const base = `${h.category}: ${brl(h.monthly)}/mês são ${brl(h.annual)} por ano.`;
+      if (h.inSalaries == null) return base;
+      const salarios = h.inSalaries.toFixed(1).replace('.', ',');
+      return `${base} Isso equivale a ${salarios} ${h.inSalaries < 2 ? 'salário seu' : 'salários seus'}.`;
+    });
   }
 
   /** Reserva de emergencia traduzida em meses de tranquilidade. */

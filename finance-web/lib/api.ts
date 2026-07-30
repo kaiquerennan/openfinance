@@ -84,6 +84,15 @@ export interface AnalyticsData {
   dailyConsumption: number[];
   reserve: ReserveStatus;
   lifestyle: LifestyleSplit;
+  habits: HabitCost[];
+}
+
+/** Custo anual de um hábito, e quantos salários ele representa. */
+export interface HabitCost {
+  category: string;
+  monthly: number;
+  annual: number;
+  inSalaries: number | null;
 }
 
 /** Consumo dividido entre custo de viver e escolha (régua 50/30/20). */
@@ -127,6 +136,7 @@ export interface AnalyticsNarrative {
   alertas: string[];
   oportunidades: string[];
   estiloDeVida: string[];
+  custoDosHabitos: string[];
   reserva: string[];
   previsoes: string[];
   indiceSaude: string[];

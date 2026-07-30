@@ -76,7 +76,10 @@ export default function CategoriasPage() {
       <div className="px-4 mt-5">
         {error && <ErrorCard message={error} />}
         <div className="mb-4">
-          <LifestyleCard lifestyle={report?.data.lifestyle} />
+          <LifestyleCard
+            lifestyle={report?.data.lifestyle}
+            habits={report?.data.habits}
+          />
         </div>
         {!report || !budgets ? (
           <LoadingCard />

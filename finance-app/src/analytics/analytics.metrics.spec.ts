@@ -467,3 +467,52 @@ describe('groupOf', () => {
     expect(groupOf(null, 10)).toEqual({ group: 'income', uncertain: true });
   });
 });
+
+describe('custo anual dos habitos', () => {
+  it('projeta o gasto no ano e converte em salarios', () => {
+    const all = [
+      ...salaryHistory(['2026-05', '2026-06', '2026-07'], 3000),
+      tx('2026-05-10', -280, 'food delivery'),
+      tx('2026-06-10', -280, 'food delivery'),
+      tx('2026-07-10', -280, 'food delivery'),
+    ];
+
+    const [delivery] = computeAnalytics(all, '2026-07').habits;
+
+    expect(delivery.category).toBe('food delivery');
+    expect(delivery.monthly).toBe(280);
+    expect(delivery.annual).toBe(3360);
+    expect(delivery.inSalaries).toBe(1.12); // 3360 / 3000
+  });
+
+  it('usa a mediana para um mes atipico nao estourar a projecao', () => {
+    const all = [
+      ...salaryHistory(['2026-05', '2026-06', '2026-07'], 3000),
+      tx('2026-05-10', -100, 'restaurants'),
+      tx('2026-06-10', -100, 'restaurants'),
+      tx('2026-07-10', -2000, 'restaurants'), // jantar de formatura
+    ];
+    // media daria 733/mes; a mediana mantem 100
+    expect(computeAnalytics(all, '2026-07').habits[0].monthly).toBe(100);
+  });
+
+  it('ignora categorias essenciais', () => {
+    const all = [
+      ...salaryHistory(['2026-05', '2026-06', '2026-07'], 3000),
+      tx('2026-05-10', -800, 'rent'),
+      tx('2026-06-10', -800, 'rent'),
+      tx('2026-07-10', -800, 'rent'),
+    ];
+    expect(computeAnalytics(all, '2026-07').habits).toHaveLength(0);
+  });
+
+  it('nao converte em salarios sem renda confiavel', () => {
+    const all = [
+      tx('2026-05-01', 5000, 'transfers', 'Pix'),
+      tx('2026-05-10', -200, 'restaurants'),
+      tx('2026-06-10', -200, 'restaurants'),
+      tx('2026-07-10', -200, 'restaurants'),
+    ];
+    expect(computeAnalytics(all, '2026-07').habits[0].inSalaries).toBeNull();
+  });
+});

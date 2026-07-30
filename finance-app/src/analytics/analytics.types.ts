@@ -118,6 +118,22 @@ export interface AnalyticsData {
 
   /** Consumo separado entre custo de viver e escolhas (visao 50/30/20). */
   lifestyle: LifestyleSplit;
+
+  /** Custo anual dos habitos de estilo de vida, em reais e em salarios. */
+  habits: HabitCost[];
+}
+
+/**
+ * O custo de um habito no ano. "R$ 280/mes" nao assusta ninguem; "R$ 3.360 por
+ * ano, mais de um salario seu" muda a conversa.
+ */
+export interface HabitCost {
+  category: string;
+  /** Gasto mensal tipico (mediana dos meses recentes com a categoria). */
+  monthly: number;
+  annual: number;
+  /** Quantos salarios mensais o gasto anual representa. Null sem renda confiavel. */
+  inSalaries: number | null;
 }
 
 /**
@@ -167,6 +183,7 @@ export interface AnalyticsNarrative {
   alertas: string[];
   oportunidades: string[];
   estiloDeVida: string[];
+  custoDosHabitos: string[];
   reserva: string[];
   previsoes: string[];
   indiceSaude: string[];
