@@ -309,6 +309,15 @@ export interface Goal {
   createdAt: string;
 }
 
+/** Aplicação detectada no extrato que ainda não virou aporte de meta. */
+export interface GoalSuggestion {
+  transactionId: string;
+  date: string;
+  description: string;
+  amount: number;
+  month: string;
+}
+
 export interface ManualTxInput {
   description: string;
   amount: number;
@@ -411,6 +420,10 @@ export const api = {
   deleteGoal: (id: string) => send<{ deleted: string }>('DELETE', `/goals/${id}`),
   addGoalEntry: (id: string, month: string, amount: number) =>
     post<GoalEntry>(`/goals/${id}/entries`, { month, amount }),
+  goalSuggestions: () => get<GoalSuggestion[]>('/goals/suggestions'),
+  /** Sem goalId, apenas dispensa a sugestão. */
+  decideGoalSuggestion: (transactionId: string, goalId?: string) =>
+    post<unknown>(`/goals/suggestions/${transactionId}`, { goalId }),
 
   manualTx: (t: ManualTxInput) => post<DbTransaction>('/manual/transactions', t),
   deleteManualTx: (id: string) =>

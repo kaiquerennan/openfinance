@@ -94,3 +94,10 @@ export class AddGoalEntryDto {
   @IsNumber()
   amount: number;
 }
+
+/** Decide uma sugestao de aporte: com goalId contabiliza, sem ele dispensa. */
+export class DecideSuggestionDto {
+  @IsOptional()
+  @IsString()
+  goalId?: string;
+}

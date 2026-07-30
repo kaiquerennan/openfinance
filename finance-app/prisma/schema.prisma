@@ -109,6 +109,19 @@ model GoalEntry {
   @@unique([goalId, month])
 }
 
+/// Transacao de investimento que ja foi tratada como aporte de meta.
+///
+/// Metas que dependem de o usuario lembrar de registrar o aporte morrem em
+/// poucas semanas. O app detecta as saidas para investimento e sugere
+/// contabiliza-las; esta tabela guarda o que ja foi decidido para a mesma
+/// transacao nao voltar a ser sugerida.
+model GoalSuggestion {
+  transactionId String   @id
+  /// Meta que recebeu o aporte. Null = o usuario dispensou a sugestao.
+  goalId        String?
+  createdAt     DateTime @default(now())
+}
+
 /// Uma transacao pertencente a uma Account.
 model Transaction {
   id             String   @id // id da Transaction na Pluggy

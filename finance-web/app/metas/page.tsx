@@ -15,6 +15,7 @@ import {
 } from "@/lib/api";
 import { bumpData, useDataVersion } from "@/lib/bus";
 import BlueHeader from "@/components/Header";
+import GoalSuggestions from "@/components/GoalSuggestions";
 import Sheet from "@/components/Sheet";
 import { GoalBars } from "@/components/Charts";
 import {
@@ -102,6 +103,7 @@ export default function MetasPage() {
 
       <div className="px-4 mt-5 space-y-4">
         {error && <ErrorCard message={error} />}
+        {goals && <GoalSuggestions goals={goals} />}
         {!goals ? (
           <LoadingCard text="Carregando metas…" />
         ) : (
