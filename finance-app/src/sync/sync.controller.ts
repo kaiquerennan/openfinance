@@ -15,6 +15,7 @@ import { SyncService } from './sync.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { PluggyWebhookPayload } from '../pluggy/pluggy.types';
 import { Public } from '../auth/public.decorator';
+import { AlertsService } from '../alerts/alerts.service';
 
 /** Teto de itens por pagina em GET /pluggy/db/transactions. */
 const MAX_PAGE_SIZE = 1000;
@@ -37,7 +38,22 @@ export class SyncController {
     private readonly sync: SyncService,
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
+    private readonly alerts: AlertsService,
   ) {}
+
+  /**
+   * Roda a sincronizacao e, no fim, avalia os alertas. E o unico momento em
+   * que os dados acabaram de mudar — avisar aqui e o que faz o app procurar o
+   * usuario em vez de esperar que ele abra a tela.
+   */
+  private syncThenAlert(label: string, from?: string, to?: string): void {
+    this.sync
+      .syncAll(from, to)
+      .then(() => this.alerts.run())
+      .catch((err) => {
+        this.logger.error(`Falha no sync (${label}): ${(err as Error).message}`);
+      });
+  }
 
   /**
    * POST /pluggy/items/:itemId/sync — puxa item+contas+transacoes+investimentos
@@ -67,9 +83,7 @@ export class SyncController {
   @Post('sync')
   @HttpCode(202)
   syncAll(@Query('from') from?: string, @Query('to') to?: string) {
-    this.sync.syncAll(from, to).catch((err) => {
-      this.logger.error(`Falha no sync geral: ${(err as Error).message}`);
-    });
+    this.syncThenAlert('sync geral', from, to);
     return { started: true };
   }
 
@@ -92,9 +106,7 @@ export class SyncController {
       throw new UnauthorizedException('Segredo invalido');
     }
     this.logger.log('Sync disparado via /pluggy/sync/trigger (agendador externo)');
-    this.sync.syncAll().catch((err) => {
-      this.logger.error(`Falha no sync via trigger externo: ${(err as Error).message}`);
-    });
+    this.syncThenAlert('trigger externo');
     return { started: true };
   }
 

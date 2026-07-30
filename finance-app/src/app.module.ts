@@ -11,6 +11,7 @@ import { AnalyticsModule } from './analytics/analytics.module';
 import { PlanningModule } from './planning/planning.module';
 import { AuthModule } from './auth/auth.module';
 import { AssistantModule } from './assistant/assistant.module';
+import { AlertsModule } from './alerts/alerts.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { AssistantModule } from './assistant/assistant.module';
     AnalyticsModule,
     PlanningModule,
     AssistantModule,
+    AlertsModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })

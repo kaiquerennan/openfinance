@@ -122,6 +122,12 @@ model GoalSuggestion {
   createdAt     DateTime @default(now())
 }
 
+/// Ultimo envio de cada alerta, para nao repetir a mesma mensagem a cada sync.
+model AlertLog {
+  key    String   @id
+  sentAt DateTime @default(now())
+}
+
 /// Uma transacao pertencente a uma Account.
 model Transaction {
   id             String   @id // id da Transaction na Pluggy
