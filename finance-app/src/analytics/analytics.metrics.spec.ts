@@ -166,6 +166,31 @@ describe('computeAnalytics — assinaturas', () => {
     expect(computeAnalytics(all, '2026-07').subscriptions.items).toHaveLength(0);
   });
 
+  it('ignora assinatura que parou de ser cobrada', () => {
+    const all = [
+      ...salaryHistory(['2026-05', '2026-06', '2026-07']),
+      // cobrada de janeiro a marco e cancelada desde entao
+      tx('2026-01-08', -39.9, 'streaming', 'Netflix'),
+      tx('2026-02-08', -39.9, 'streaming', 'Netflix'),
+      tx('2026-03-08', -39.9, 'streaming', 'Netflix'),
+    ];
+
+    const d = computeAnalytics(all, '2026-07');
+
+    expect(d.subscriptions.items).toHaveLength(0);
+    expect(d.subscriptions.monthlyTotal).toBe(0);
+  });
+
+  it('mantem assinatura cobrada no mes anterior ao analisado', () => {
+    const all = [
+      ...salaryHistory(['2026-05', '2026-06', '2026-07']),
+      tx('2026-04-08', -39.9, 'streaming', 'Netflix'),
+      tx('2026-05-08', -39.9, 'streaming', 'Netflix'),
+      tx('2026-06-08', -39.9, 'streaming', 'Netflix'),
+    ];
+    expect(computeAnalytics(all, '2026-07').subscriptions.items).toHaveLength(1);
+  });
+
   it('ignora cobranca de valor instavel', () => {
     const all = [
       ...salaryHistory(['2026-05', '2026-06', '2026-07']),

@@ -218,7 +218,7 @@ export function computeAnalytics(rawAll: Tx[], targetMonth: string): AnalyticsDa
   const trends = computeTrends(all, targetMonth);
 
   // --- Assinaturas / recorrencias ---
-  const subscriptions = computeSubscriptions(all);
+  const subscriptions = computeSubscriptions(all, targetMonth);
 
   // --- Desperdicios ---
   const waste = computeWaste(thisM, feesOut);
@@ -432,7 +432,7 @@ function computeTrends(all: Tx[], targetMonth: string): TrendPoint[] {
   return [1, 3, 6, 12].map((m) => windowMetrics(all, targetMonth, m));
 }
 
-function computeSubscriptions(all: Tx[]) {
+function computeSubscriptions(all: Tx[], targetMonth: string) {
   const groups = new Map<string, Tx[]>();
   for (const t of all.filter((t) => t.amount < 0 && t.group !== 'transfer')) {
     const key = normalizeDesc(t.description);
@@ -442,16 +442,22 @@ function computeSubscriptions(all: Tx[]) {
     groups.set(key, arr);
   }
 
+  // Uma assinatura so conta como despesa fixa se ainda esta sendo cobrada.
+  // Sem esta janela, um servico cancelado ha meses seguia entrando no total
+  // mensal/anual e nas recomendacoes de economia para sempre.
+  const activeMonths = new Set([targetMonth, addMonths(targetMonth, -1)]);
+
   const items: Subscription[] = [];
   for (const [key, txs] of groups) {
     const months = new Set(txs.map((t) => monthKey(t.date)));
     if (months.size < 3) continue; // recorrente = ao menos 3 meses distintos
+    const last = txs.reduce((a, b) => (a.date > b.date ? a : b));
+    if (!activeMonths.has(monthKey(last.date))) continue; // cancelada
     const amounts = txs.map((t) => Math.abs(t.amount));
     const mean = sum(amounts) / amounts.length;
     const variance = sum(amounts.map((a) => (a - mean) ** 2)) / amounts.length;
     const cv = mean > 0 ? Math.sqrt(variance) / mean : 1;
     if (cv > 0.35) continue; // valor instavel -> provavelmente nao e assinatura
-    const last = txs.reduce((a, b) => (a.date > b.date ? a : b));
     items.push({
       description: key,
       monthlyAmount: round2(mean),
