@@ -79,6 +79,17 @@ export interface AnalyticsData {
   };
   /** Consumo acumulado por dia do mês (índice 0 = dia 1), até hoje. */
   dailyConsumption: number[];
+  reserve: ReserveStatus;
+}
+
+/** Reserva de emergência medida em meses de custo de vida. */
+export interface ReserveStatus {
+  liquidAssets: number;
+  monthlyCost: number;
+  months: number | null;
+  targetMonths: number;
+  missing: number;
+  status: 'sem-reserva' | 'iniciando' | 'boa' | 'completa' | 'indefinido';
 }
 
 /** Agregado mensal já classificado pelo backend (fonte única dos gráficos). */

@@ -28,6 +28,7 @@ export class RuleBasedNarrator implements InsightNarrator {
       desperdicios: this.desperdicios(d),
       alertas: this.alertas(d),
       oportunidades: this.oportunidades(d),
+      reserva: this.reserva(d),
       previsoes: this.previsoes(d),
       indiceSaude: this.saude(d),
       insightsAutomaticos: this.insights(d),
@@ -196,6 +197,44 @@ export class RuleBasedNarrator implements InsightNarrator {
     if (gambling)
       out.push(`Cortar apostas economizaria ${brl(gambling.total)}/mês.`);
     return out.length ? out : ['Sem oportunidades óbvias de economia neste período.'];
+  }
+
+  /** Reserva de emergencia traduzida em meses de tranquilidade. */
+  private reserva(d: AnalyticsData): string[] {
+    const r = d.reserve;
+    if (r.status === 'indefinido' || r.months == null)
+      return [
+        'Ainda não dá pra estimar sua reserva de emergência — falta histórico de gastos para saber quanto custa o seu mês.',
+      ];
+
+    const meses = r.months.toFixed(1).replace('.', ',');
+    const out = [
+      `Você tem ${brl(r.liquidAssets)} disponíveis e seu mês custa cerca de ${brl(r.monthlyCost)} — isso é ${meses} ${r.months === 1 ? 'mês' : 'meses'} de reserva.`,
+    ];
+
+    if (r.status === 'completa') {
+      out.push(
+        `Sua reserva já cobre os ${r.targetMonths} meses recomendados. A partir daqui, o dinheiro novo pode ir para objetivos de prazo mais longo.`,
+      );
+    } else {
+      out.push(
+        `Para chegar aos ${r.targetMonths} meses recomendados faltam ${brl(r.missing)}.`,
+      );
+      const t3 = d.trends.find((t) => t.window === '3m')!;
+      const ritmo = t3.savings / 3;
+      if (ritmo > 0) {
+        const meses = Math.ceil(r.missing / ritmo);
+        out.push(
+          `No ritmo de ${brl(ritmo)}/mês que você vem poupando, leva ${meses} ${meses === 1 ? 'mês' : 'meses'}.`,
+        );
+      }
+    }
+
+    if (r.status === 'sem-reserva')
+      out.push(
+        'Antes de investir em qualquer outra coisa, junte pelo menos um mês de custo de vida — é o que evita ter que recorrer ao cartão num imprevisto.',
+      );
+    return out;
   }
 
   private previsoes(d: AnalyticsData): string[] {

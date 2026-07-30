@@ -333,6 +333,59 @@ describe('dailyConsumption', () => {
   });
 });
 
+describe('reserva de emergencia', () => {
+  /** Tres meses fechados de R$ 1.000 de consumo, mes-alvo tambem fechado. */
+  const historico = [
+    ...salaryHistory(['2026-04', '2026-05', '2026-06', '2026-07']),
+    tx('2026-04-10', -1000, 'groceries'),
+    tx('2026-05-10', -1000, 'groceries'),
+    tx('2026-06-10', -1000, 'groceries'),
+    tx('2026-07-10', -1000, 'groceries'),
+  ];
+
+  it('converte o dinheiro disponivel em meses de custo de vida', () => {
+    const r = computeAnalytics(historico, '2026-07', 3000).reserve;
+    expect(r.monthlyCost).toBe(1000);
+    expect(r.months).toBe(3);
+    expect(r.status).toBe('boa');
+    expect(r.missing).toBe(3000); // faltam 3 dos 6 meses
+  });
+
+  it('marca como completa quem ja tem o alvo de meses', () => {
+    const r = computeAnalytics(historico, '2026-07', 6000).reserve;
+    expect(r.status).toBe('completa');
+    expect(r.missing).toBe(0);
+  });
+
+  it('marca como sem reserva quem nao cobre nem um mes', () => {
+    const r = computeAnalytics(historico, '2026-07', 500).reserve;
+    expect(r.months).toBe(0.5);
+    expect(r.status).toBe('sem-reserva');
+  });
+
+  it('usa a mediana para um mes atipico nao inflar o custo', () => {
+    const comViagem = [
+      ...salaryHistory(['2026-04', '2026-05', '2026-06', '2026-07']),
+      tx('2026-04-10', -1000, 'groceries'),
+      tx('2026-05-10', -1000, 'groceries'),
+      tx('2026-06-10', -9000, 'travel'), // viagem pontual
+      tx('2026-07-10', -1000, 'groceries'),
+    ];
+    // media seria 3000; a mediana ignora o pico
+    expect(computeAnalytics(comViagem, '2026-07').reserve.monthlyCost).toBe(1000);
+  });
+
+  it('fica indefinida quando nao ha historico de gastos', () => {
+    const r = computeAnalytics(salaryHistory(['2026-07']), '2026-07', 5000).reserve;
+    expect(r.status).toBe('indefinido');
+    expect(r.months).toBeNull();
+  });
+
+  it('nao considera saldo negativo como reserva', () => {
+    expect(computeAnalytics(historico, '2026-07', -800).reserve.liquidAssets).toBe(0);
+  });
+});
+
 describe('groupOf', () => {
   it('classifica categorias conhecidas sem marcar incerteza', () => {
     expect(groupOf('transfers', -10)).toEqual({ group: 'transfer', uncertain: false });

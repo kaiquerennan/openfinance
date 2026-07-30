@@ -44,6 +44,14 @@ function data(patch: Partial<AnalyticsData> = {}): AnalyticsData {
     health: { score: 70, rating: 'Bom', components: [] },
     movements: { transfers: 0, investmentsNet: 0, debt: 0, fees: 0, gamblingNet: null },
     dailyConsumption: [],
+    reserve: {
+      liquidAssets: 6000,
+      monthlyCost: 1000,
+      months: 6,
+      targetMonths: 6,
+      missing: 0,
+      status: 'completa',
+    },
     ...patch,
   };
 }
@@ -87,5 +95,55 @@ describe('oportunidades — assinaturas menos usadas', () => {
     });
     const frases = narrator.narrate(d).oportunidades;
     expect(frases.some((o) => o.includes('assinaturas menos usadas'))).toBe(false);
+  });
+});
+
+describe('reserva de emergencia', () => {
+  it('diz quanto falta e em quanto tempo, no ritmo atual', () => {
+    const d = data({
+      reserve: {
+        liquidAssets: 3000,
+        monthlyCost: 1000,
+        months: 3,
+        targetMonths: 6,
+        missing: 3000,
+        status: 'boa',
+      },
+    });
+
+    const frases = narrator.narrate(d).reserva.join(' ');
+
+    expect(frases).toContain('3,0 meses de reserva');
+    expect(frases).toContain('faltam R$ 3.000,00');
+    // poupanca de 3m e 2000 no fixture -> ~666,67/mes -> 5 meses
+    expect(frases).toContain('leva 5 meses');
+  });
+
+  it('avisa quem nao tem nem um mes guardado', () => {
+    const d = data({
+      reserve: {
+        liquidAssets: 200,
+        monthlyCost: 1000,
+        months: 0.2,
+        targetMonths: 6,
+        missing: 5800,
+        status: 'sem-reserva',
+      },
+    });
+    expect(narrator.narrate(d).reserva.join(' ')).toContain('Antes de investir');
+  });
+
+  it('nao inventa numero quando nao da pra estimar o custo', () => {
+    const d = data({
+      reserve: {
+        liquidAssets: 0,
+        monthlyCost: 0,
+        months: null,
+        targetMonths: 6,
+        missing: 0,
+        status: 'indefinido',
+      },
+    });
+    expect(narrator.narrate(d).reserva[0]).toContain('Ainda não dá pra estimar');
   });
 });

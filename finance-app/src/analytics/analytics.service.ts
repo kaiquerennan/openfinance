@@ -50,7 +50,11 @@ export class AnalyticsService {
     this.logger.log(
       `Analise do mes ${targetMonth} sobre ${snap.tx.length} transacoes${accountId ? ` (conta ${accountId})` : ''}.`,
     );
-    const data = computeAnalytics(snap.tx, targetMonth);
+    const data = computeAnalytics(
+      snap.tx,
+      targetMonth,
+      await this.liquidAssets(accountId),
+    );
     const report = { data, narrative: this.narrator.narrate(data) };
     snap.reports.set(targetMonth, report);
     return report;
@@ -80,6 +84,31 @@ export class AnalyticsService {
   }
 
   // ---------------------------------------------------------------------------
+
+  /**
+   * Dinheiro que da pra usar hoje: saldo das contas correntes mais os
+   * investimentos ativos. Fatura de cartao (type CREDIT) fica de fora — e
+   * divida, nao reserva.
+   */
+  private async liquidAssets(accountId?: string): Promise<number> {
+    const [accounts, investments] = await Promise.all([
+      this.prisma.account.findMany({
+        where: { type: 'BANK', id: accountId || undefined },
+        select: { balance: true },
+      }),
+      accountId
+        ? Promise.resolve([])
+        : this.prisma.investment.findMany({
+            where: { status: { not: 'TOTAL_WITHDRAWAL' } },
+            select: { balance: true },
+          }),
+    ]);
+    const total = [...accounts, ...investments].reduce(
+      (sum, row) => sum + Number(row.balance ?? 0),
+      0,
+    );
+    return total;
+  }
 
   /** Foto atual do extrato, reaproveitada enquanto o banco nao mudar. */
   private async snapshotFor(accountId?: string): Promise<Snapshot> {

@@ -108,6 +108,28 @@ export interface AnalyticsData {
 
   /** Consumo acumulado por dia do mes (indice 0 = dia 1), ate hoje. */
   dailyConsumption: number[];
+
+  /** Quanto tempo o dinheiro disponivel sustenta o padrao de vida atual. */
+  reserve: ReserveStatus;
+}
+
+/**
+ * Reserva de emergencia medida em meses de custo de vida — a pergunta que
+ * importa nao e "quanto tenho guardado" e sim "por quantos meses eu me
+ * sustento se a renda parar hoje".
+ */
+export interface ReserveStatus {
+  /** Saldo em conta + investimentos resgataveis. */
+  liquidAssets: number;
+  /** Custo de vida mensal tipico (mediana dos meses fechados recentes). */
+  monthlyCost: number;
+  /** liquidAssets / monthlyCost. null quando nao da pra estimar o custo. */
+  months: number | null;
+  /** Meses de reserva considerados ideais. */
+  targetMonths: number;
+  /** Quanto falta guardar para atingir o alvo (0 se ja atingiu). */
+  missing: number;
+  status: 'sem-reserva' | 'iniciando' | 'boa' | 'completa' | 'indefinido';
 }
 
 /** Saida narrativa estilo consultor (gerada por regras; futura IA pluga aqui). */
@@ -122,6 +144,7 @@ export interface AnalyticsNarrative {
   desperdicios: string[];
   alertas: string[];
   oportunidades: string[];
+  reserva: string[];
   previsoes: string[];
   indiceSaude: string[];
   insightsAutomaticos: string[];

@@ -161,7 +161,80 @@ export function computeMonthlySeries(rawAll: Tx[], months: string[]): MonthPoint
   });
 }
 
-export function computeAnalytics(rawAll: Tx[], targetMonth: string): AnalyticsData {
+/** Meses de custo de vida considerados uma reserva de emergencia completa. */
+const RESERVE_TARGET_MONTHS = 6;
+
+/**
+ * Custo de vida mensal tipico: mediana do consumo dos meses fechados
+ * recentes. Mediana (e nao media) para um mes atipico — uma viagem, uma
+ * compra grande — nao inflar a estimativa. O mes-alvo fica de fora quando
+ * ainda esta em curso, senao um mes pela metade faria a reserva parecer
+ * maior do que e.
+ */
+function typicalMonthlyCost(all: Tx[], targetMonth: string): number {
+  const isCurrent = monthKey(new Date()) === targetMonth;
+  const values: number[] = [];
+  for (let i = isCurrent ? 1 : 0; i <= 6; i++) {
+    const month = addMonths(targetMonth, -i);
+    const spent = sum(
+      all
+        .filter((t) => consumptionOut(t) && monthKey(t.date) === month)
+        .map((t) => Math.abs(t.amount)),
+    );
+    if (spent > 0) values.push(spent);
+  }
+  if (!values.length) return 0;
+  values.sort((a, b) => a - b);
+  const mid = Math.floor(values.length / 2);
+  return round2(
+    values.length % 2 ? values[mid] : (values[mid - 1] + values[mid]) / 2,
+  );
+}
+
+function computeReserve(
+  all: Tx[],
+  targetMonth: string,
+  liquidAssets: number,
+): AnalyticsData['reserve'] {
+  const monthlyCost = typicalMonthlyCost(all, targetMonth);
+  const assets = round2(Math.max(liquidAssets, 0));
+
+  if (monthlyCost <= 0) {
+    return {
+      liquidAssets: assets,
+      monthlyCost: 0,
+      months: null,
+      targetMonths: RESERVE_TARGET_MONTHS,
+      missing: 0,
+      status: 'indefinido',
+    };
+  }
+
+  const months = round2(assets / monthlyCost);
+  const status: AnalyticsData['reserve']['status'] =
+    months >= RESERVE_TARGET_MONTHS
+      ? 'completa'
+      : months >= 3
+        ? 'boa'
+        : months >= 1
+          ? 'iniciando'
+          : 'sem-reserva';
+
+  return {
+    liquidAssets: assets,
+    monthlyCost,
+    months,
+    targetMonths: RESERVE_TARGET_MONTHS,
+    missing: round2(Math.max(monthlyCost * RESERVE_TARGET_MONTHS - assets, 0)),
+    status,
+  };
+}
+
+export function computeAnalytics(
+  rawAll: Tx[],
+  targetMonth: string,
+  liquidAssets = 0,
+): AnalyticsData {
   const all = netGamblingCashouts(rawAll);
   const gamblingNet = computeGamblingNet(
     rawAll.filter((t) => inMonth(t, targetMonth)),
@@ -282,6 +355,7 @@ export function computeAnalytics(rawAll: Tx[], targetMonth: string): AnalyticsDa
     health,
     movements,
     dailyConsumption,
+    reserve: computeReserve(all, targetMonth, liquidAssets),
   };
 }
 
