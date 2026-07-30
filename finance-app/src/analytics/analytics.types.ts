@@ -34,6 +34,10 @@ export interface Subscription {
   monthsSeen: number;
   annualEstimate: number;
   lastDate: string;
+  /** Valor da cobranca mais recente. */
+  currentAmount: number;
+  /** % de aumento da cobranca atual sobre a mediana das anteriores (null se estavel//sem base). */
+  increasePct: number | null;
 }
 
 export interface TrendPoint {

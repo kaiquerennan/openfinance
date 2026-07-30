@@ -191,6 +191,32 @@ describe('computeAnalytics — assinaturas', () => {
     expect(computeAnalytics(all, '2026-07').subscriptions.items).toHaveLength(1);
   });
 
+  it('sinaliza reajuste da ultima cobranca sobre o historico', () => {
+    const all = [
+      ...salaryHistory(['2026-05', '2026-06', '2026-07']),
+      tx('2026-04-08', -39.9, 'streaming', 'Netflix'),
+      tx('2026-05-08', -39.9, 'streaming', 'Netflix'),
+      tx('2026-06-08', -39.9, 'streaming', 'Netflix'),
+      tx('2026-07-08', -47.9, 'streaming', 'Netflix'), // reajuste
+    ];
+
+    const [netflix] = computeAnalytics(all, '2026-07').subscriptions.items;
+
+    expect(netflix.currentAmount).toBe(47.9);
+    expect(netflix.increasePct).toBe(20.05);
+  });
+
+  it('nao sinaliza variacao de centavos como reajuste', () => {
+    const all = [
+      ...salaryHistory(['2026-05', '2026-06', '2026-07']),
+      tx('2026-04-08', -39.9, 'streaming', 'Netflix'),
+      tx('2026-05-08', -39.9, 'streaming', 'Netflix'),
+      tx('2026-06-08', -39.9, 'streaming', 'Netflix'),
+      tx('2026-07-08', -40.3, 'streaming', 'Netflix'),
+    ];
+    expect(computeAnalytics(all, '2026-07').subscriptions.items[0].increasePct).toBeNull();
+  });
+
   it('ignora cobranca de valor instavel', () => {
     const all = [
       ...salaryHistory(['2026-05', '2026-06', '2026-07']),

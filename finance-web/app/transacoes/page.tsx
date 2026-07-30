@@ -483,12 +483,25 @@ function TransacoesInner() {
                           🔁
                         </span>
                         <div className="flex-1 min-w-0">
-                          <div className="text-[15px] font-semibold text-ink truncate">
-                            {s.description}
+                          <div className="flex items-center gap-2">
+                            <span className="text-[15px] font-semibold text-ink truncate">
+                              {s.description}
+                            </span>
+                            {s.increasePct != null && (
+                              <span className="shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-neg/15 text-neg">
+                                +{s.increasePct}%
+                              </span>
+                            )}
                           </div>
                           <div className="text-sm text-ink-dim">
-                            há {s.monthsSeen} {s.monthsSeen === 1 ? "mês" : "meses"} · todo
-                            dia {Number(s.lastDate.split("-")[2])}
+                            {s.increasePct != null ? (
+                              <>subiu para {brl0(s.currentAmount)} na última cobrança</>
+                            ) : (
+                              <>
+                                há {s.monthsSeen} {s.monthsSeen === 1 ? "mês" : "meses"} ·
+                                todo dia {Number(s.lastDate.split("-")[2])}
+                              </>
+                            )}
                           </div>
                         </div>
                         <Money value={s.monthlyAmount} className="text-[16px]" />

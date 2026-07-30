@@ -28,6 +28,9 @@ export interface Subscription {
   monthsSeen: number;
   annualEstimate: number;
   lastDate: string;
+  currentAmount: number;
+  /** % de aumento da última cobrança sobre o histórico (null se estável). */
+  increasePct: number | null;
 }
 
 export interface HealthScore {
@@ -112,6 +115,7 @@ export interface AnalyticsNarrative {
   desperdicios: string[];
   alertas: string[];
   oportunidades: string[];
+  reserva: string[];
   previsoes: string[];
   indiceSaude: string[];
   insightsAutomaticos: string[];

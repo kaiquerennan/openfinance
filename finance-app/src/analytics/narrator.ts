@@ -144,6 +144,13 @@ export class RuleBasedNarrator implements InsightNarrator {
     ];
     for (const i of s.items.slice(0, 6))
       out.push(`- "${i.description}": ${brl(i.monthlyAmount)}/mês (visto em ${i.monthsSeen} meses).`);
+
+    // Reajuste passa batido porque o valor novo vira o "normal" na média.
+    const reajustadas = s.items.filter((i) => i.increasePct != null);
+    for (const i of reajustadas)
+      out.push(
+        `Atenção: "${i.description}" subiu ${i.increasePct}% — a última cobrança foi ${brl(i.currentAmount)}, acima do que você vinha pagando.`,
+      );
     return out;
   }
 

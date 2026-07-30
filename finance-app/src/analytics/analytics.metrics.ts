@@ -534,11 +534,36 @@ function computeSubscriptions(all: Tx[], targetMonth: string) {
       monthsSeen: months.size,
       annualEstimate: round2(mean * 12),
       lastDate: dateKey(last.date),
+      currentAmount: round2(Math.abs(last.amount)),
+      increasePct: increaseOverHistory(txs, last),
     });
   }
   items.sort((a, b) => b.monthlyAmount - a.monthlyAmount);
   const monthlyTotal = round2(sum(items.map((i) => i.monthlyAmount)));
   return { items, monthlyTotal, annualTotal: round2(monthlyTotal * 12) };
+}
+
+/**
+ * Quanto a cobranca atual subiu sobre a mediana das anteriores.
+ *
+ * Reajuste de assinatura passa despercebido porque o valor novo vira o
+ * "normal" na media. Comparando so a ultima cobranca contra a mediana do
+ * historico, o aumento aparece. Abaixo de 5% e ruido (centavos, cambio).
+ */
+function increaseOverHistory(txs: Tx[], last: Tx): number | null {
+  const previous = txs
+    .filter((t) => t !== last)
+    .map((t) => Math.abs(t.amount))
+    .sort((a, b) => a - b);
+  if (previous.length < 2) return null;
+
+  const mid = Math.floor(previous.length / 2);
+  const median =
+    previous.length % 2 ? previous[mid] : (previous[mid - 1] + previous[mid]) / 2;
+  if (median <= 0) return null;
+
+  const growth = pct(Math.abs(last.amount) - median, median);
+  return growth >= 5 ? growth : null;
 }
 
 function computeWaste(thisM: Tx[], feesOut: number) {
