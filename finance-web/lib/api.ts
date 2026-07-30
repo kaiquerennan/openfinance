@@ -204,6 +204,8 @@ export function sortAccounts(list: DbAccount[]) {
 export interface TransactionsPage {
   total: number;
   transactions: DbTransaction[];
+  /** true quando `total` é maior que o que coube na página pedida. */
+  hasMore: boolean;
 }
 
 /** O sync agora roda em segundo plano no servidor; a resposta e so um ack. */

@@ -16,6 +16,9 @@ import { PrismaService } from '../prisma/prisma.service';
 import { PluggyWebhookPayload } from '../pluggy/pluggy.types';
 import { Public } from '../auth/public.decorator';
 
+/** Teto de itens por pagina em GET /pluggy/db/transactions. */
+const MAX_PAGE_SIZE = 1000;
+
 /** Eventos de webhook que devem disparar uma sincronizacao do item. */
 const WEBHOOK_EVENTS_TO_SYNC = new Set([
   'item/created',
@@ -161,7 +164,13 @@ export class SyncController {
     return { total, investments: active };
   }
 
-  /** GET /pluggy/db/transactions — transacoes persistidas, com filtros opcionais. */
+  /**
+   * GET /pluggy/db/transactions — transacoes persistidas, com filtros opcionais.
+   *
+   * A resposta traz `total` (quantas existem no filtro) e `hasMore`, para o
+   * cliente saber que a pagina foi cortada em vez de assumir que recebeu tudo
+   * e exibir um total menor que o real sem nenhum aviso.
+   */
   @Get('db/transactions')
   async dbTransactions(
     @Query('accountId') accountId?: string,
@@ -181,6 +190,8 @@ export class SyncController {
         lte: to ? new Date(to) : undefined,
       },
     };
+    const limit = Math.min(Number(take) || 200, MAX_PAGE_SIZE);
+    const offset = Number(skip) || 0;
     const [total, transactions] = await Promise.all([
       this.prisma.transaction.count({ where }),
       this.prisma.transaction.findMany({
@@ -196,10 +207,16 @@ export class SyncController {
           },
         },
         orderBy: { date: 'desc' },
-        take: Math.min(Number(take) || 200, 1000),
-        skip: Number(skip) || 0,
+        take: limit,
+        skip: offset,
       }),
     ]);
-    return { total, transactions };
+    const hasMore = offset + transactions.length < total;
+    if (hasMore) {
+      this.logger.warn(
+        `Consulta de transacoes truncada: ${transactions.length} de ${total} (take=${limit}, skip=${offset}).`,
+      );
+    }
+    return { total, transactions, hasMore };
   }
 }

@@ -114,6 +114,7 @@ function TransacoesInner() {
   const [accounts, setAccounts] = useState<DbAccount[]>([]);
   const [budgets, setBudgets] = useState<Budget[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [truncated, setTruncated] = useState<number | null>(null);
 
   const [showAll, setShowAll] = useState(false);
   const [limitCat, setLimitCat] = useState<string | null>(null);
@@ -158,7 +159,13 @@ function TransacoesInner() {
     const { from, to } = monthRange(month);
     api
       .transactions({ from, to, take: 1000 })
-      .then((p) => setMonthData({ month, txs: p.transactions }))
+      .then((p) => {
+        setMonthData({ month, txs: p.transactions });
+        // Os totais por categoria abaixo são somados sobre esta página. Se ela
+        // veio cortada, o total mostrado é menor que o real — melhor avisar do
+        // que exibir um número errado como se fosse completo.
+        setTruncated(p.hasMore ? p.total : null);
+      })
       .catch((e) => setError(e.message));
   }, [month, version]);
 
@@ -301,6 +308,11 @@ function TransacoesInner() {
 
       <div className="px-4 mt-5 space-y-4">
         {error && <ErrorCard message={error} />}
+        {truncated !== null && (
+          <ErrorCard
+            message={`Este mês tem ${truncated} lançamentos e a tela carrega no máximo 1000 — os totais por categoria abaixo estão incompletos.`}
+          />
+        )}
 
         {/* ——— Visão geral ——— */}
         {tab === "visao" &&
