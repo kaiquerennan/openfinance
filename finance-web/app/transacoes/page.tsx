@@ -476,7 +476,7 @@ function TransacoesInner() {
                           </div>
                           <div className="text-sm text-ink-dim">
                             há {s.monthsSeen} {s.monthsSeen === 1 ? "mês" : "meses"} · todo
-                            dia {new Date(s.lastDate).getUTCDate()}
+                            dia {Number(s.lastDate.split("-")[2])}
                           </div>
                         </div>
                         <Money value={s.monthlyAmount} className="text-[16px]" />

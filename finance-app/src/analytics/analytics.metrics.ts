@@ -8,6 +8,16 @@ import {
   Tx,
 } from './analytics.types';
 import { WASTE_CATEGORIES } from './category-groups';
+import {
+  addMonths,
+  dateKey,
+  dayOfMonth,
+  daysInMonth,
+  hourOfDay,
+  monthBounds,
+  monthKey,
+  weekdayOf,
+} from './timezone';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -18,21 +28,7 @@ const pct = (part: number, whole: number) =>
   whole > 0 ? round2((part / whole) * 100) : 0;
 const sum = (xs: number[]) => xs.reduce((a, b) => a + b, 0);
 
-/** 'YYYY-MM' em horario local (relevante p/ transacoes de fim de mes). */
-export function monthKey(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-}
-
-function addMonths(month: string, delta: number): string {
-  const [y, m] = month.split('-').map(Number);
-  const d = new Date(y, m - 1 + delta, 1);
-  return monthKey(d);
-}
-
-function monthBounds(month: string): { from: Date; to: Date } {
-  const [y, m] = month.split('-').map(Number);
-  return { from: new Date(y, m - 1, 1, 0, 0, 0), to: new Date(y, m, 0, 23, 59, 59) };
-}
+export { monthKey } from './timezone';
 
 const inMonth = (t: Tx, month: string) => monthKey(t.date) === month;
 const consumptionOut = (t: Tx) => t.group === 'consumption' && t.amount < 0;
@@ -272,8 +268,8 @@ export function computeAnalytics(rawAll: Tx[], targetMonth: string): AnalyticsDa
   return {
     period: {
       month: targetMonth,
-      from: bounds.from.toISOString().slice(0, 10),
-      to: bounds.to.toISOString().slice(0, 10),
+      from: dateKey(bounds.from),
+      to: dateKey(bounds.to),
     },
     dataQuality: { uncertainCategoryShare: uncertainShare, salaryDetected, incomeReliable, notes },
     summary: { income, consumption, savings, commitmentPct, classification, changeVsPrevPct },
@@ -295,13 +291,13 @@ export function computeAnalytics(rawAll: Tx[], targetMonth: string): AnalyticsDa
  * ritmo de gasto sem precisar das transacoes cruas.
  */
 function computeDailyConsumption(thisM: Tx[], targetMonth: string): number[] {
-  const { to } = monthBounds(targetMonth);
   const now = new Date();
-  const lastDay = monthKey(now) === targetMonth ? now.getDate() : to.getDate();
+  const lastDay =
+    monthKey(now) === targetMonth ? dayOfMonth(now) : daysInMonth(targetMonth);
 
   const perDay = new Array<number>(lastDay + 1).fill(0);
   for (const t of thisM.filter(consumptionOut)) {
-    const day = t.date.getDate();
+    const day = dayOfMonth(t.date);
     if (day <= lastDay) perDay[day] += Math.abs(t.amount);
   }
 
@@ -395,8 +391,8 @@ function computeDestination(thisM: Tx[], income: number, consumption: number) {
 
 function computeBehavior(thisM: Tx[], prevM: Tx[], bounds: { from: Date; to: Date }) {
   const cons = thisM.filter(consumptionOut);
-  const weekend = cons.filter((t) => [0, 6].includes(t.date.getDay()));
-  const night = cons.filter((t) => t.date.getHours() >= 22 || t.date.getHours() < 6);
+  const weekend = cons.filter((t) => [0, 6].includes(weekdayOf(t.date)));
+  const night = cons.filter((t) => hourOfDay(t.date) >= 22 || hourOfDay(t.date) < 6);
   const deliveryThis = cons.filter((t) => t.category.toLowerCase().includes('delivery'));
   const deliveryPrev = prevM.filter(
     (t) => consumptionOut(t) && t.category.toLowerCase().includes('delivery'),
@@ -463,7 +459,7 @@ function computeSubscriptions(all: Tx[], targetMonth: string) {
       monthlyAmount: round2(mean),
       monthsSeen: months.size,
       annualEstimate: round2(mean * 12),
-      lastDate: last.date.toISOString().slice(0, 10),
+      lastDate: dateKey(last.date),
     });
   }
   items.sort((a, b) => b.monthlyAmount - a.monthlyAmount);

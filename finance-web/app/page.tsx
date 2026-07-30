@@ -17,6 +17,7 @@ import {
   DbAccount,
   DbTransaction,
   monthRange,
+  todayParts,
   sortAccounts,
 } from "@/lib/api";
 import { useDataVersion } from "@/lib/bus";
@@ -89,24 +90,20 @@ export default function HomePage() {
 
   const over = budget !== null ? spent - budget : null;
 
-  // Contas a pagar: recorrências com próxima cobrança ainda neste mês
+  // Contas a pagar: recorrências com próxima cobrança ainda neste mês.
+  // lastDate é uma data de calendário ("YYYY-MM-DD"), então a conta é feita
+  // em dia/mês/ano direto — sem passar por Date, que reinterpretaria em UTC.
   const upcoming = useMemo(() => {
     if (!report) return [];
-    const now = new Date();
+    const today = todayParts();
     return report.data.subscriptions.items
       .map((s) => {
-        const last = new Date(s.lastDate);
-        const due = new Date(Date.UTC(last.getUTCFullYear(), last.getUTCMonth() + 1, last.getUTCDate()));
-        return { ...s, due };
+        const [, , dayStr] = s.lastDate.split("-");
+        return { ...s, dueDay: Number(dayStr) };
       })
-      .filter(
-        (s) =>
-          s.due.getUTCMonth() === now.getMonth() &&
-          s.due.getUTCFullYear() === now.getFullYear() &&
-          s.due.getUTCDate() >= now.getDate(),
-      )
-      .sort((a, b) => a.due.getTime() - b.due.getTime());
-  }, [report]);
+      .filter((s) => s.dueDay >= today.day && s.dueDay <= daysInMonth)
+      .sort((a, b) => a.dueDay - b.dueDay);
+  }, [report, daysInMonth]);
 
   const total = (accounts ?? [])
     .filter((a) => a.type === "BANK")
@@ -245,12 +242,7 @@ export default function HomePage() {
                   <div className="text-sm text-ink-dim flex items-center gap-2">
                     Total de <Amount>{brl0(upcoming.reduce((s, u) => s + u.monthlyAmount, 0))}</Amount>
                     <span className="text-ink-faint">|</span>
-                    Até{" "}
-                    {upcoming[upcoming.length - 1].due.toLocaleDateString("pt-BR", {
-                      day: "2-digit",
-                      month: "2-digit",
-                      timeZone: "UTC",
-                    })}
+                    Até dia {upcoming[upcoming.length - 1].dueDay}
                   </div>
                 </div>
                 <span className="h-10 w-10 rounded-full bg-soft grid place-items-center text-ink-dim shrink-0">

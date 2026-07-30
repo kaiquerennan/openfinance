@@ -403,11 +403,52 @@ export function currentMonth() {
 
 const WEEKDAYS = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'];
 
+/**
+ * Fuso de referência do app. Datas vêm do backend como instante UTC; ler o dia
+ * com getUTCDate() jogava as compras da noite para o dia seguinte (22h em
+ * Brasília já é o outro dia em UTC).
+ */
+export const TIMEZONE = 'America/Sao_Paulo';
+
+const DATE_PARTS = new Intl.DateTimeFormat('en-US', {
+  timeZone: TIMEZONE,
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+  weekday: 'short',
+});
+
+const WEEKDAY_INDEX: Record<string, number> = {
+  Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6,
+};
+
+/** Componentes de calendário de um instante, vistos em Brasília. */
+export function zonedParts(dateIso: string) {
+  const parts = DATE_PARTS.formatToParts(new Date(dateIso));
+  const at = (type: string) => parts.find((p) => p.type === type)?.value ?? '0';
+  return {
+    year: Number(at('year')),
+    month: Number(at('month')),
+    day: Number(at('day')),
+    weekday: WEEKDAY_INDEX[at('weekday')] ?? 0,
+  };
+}
+
+/** Hoje em Brasília, como componentes de calendário. */
+export function todayParts() {
+  return zonedParts(new Date().toISOString());
+}
+
+/** 'YYYY-MM' de um instante, no calendário de Brasília. */
+export function zonedMonth(dateIso: string) {
+  const { year, month } = zonedParts(dateIso);
+  return `${year}-${String(month).padStart(2, '0')}`;
+}
+
 /** Cabeçalho de grupo por dia: "SEG, 13 DE JULHO". */
 export function dayGroupLabel(dateIso: string) {
-  const d = new Date(dateIso);
-  const wd = WEEKDAYS[d.getUTCDay()];
-  return `${wd}, ${d.getUTCDate()} DE ${MONTH_LABELS[d.getUTCMonth()].toUpperCase()}`;
+  const { day, month, weekday } = zonedParts(dateIso);
+  return `${WEEKDAYS[weekday]}, ${day} DE ${MONTH_LABELS[month - 1].toUpperCase()}`;
 }
 
 /** "R$ 1.234" sem símbolo p/ eixos: 1,2K etc. */
