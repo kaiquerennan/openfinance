@@ -162,6 +162,11 @@ export class SyncService {
     itemId: string,
     acc: PluggyAccountFull,
   ): Promise<void> {
+    const credit = acc.creditData ?? null;
+    const decimal = (v: number | undefined) =>
+      v != null ? new Prisma.Decimal(v) : null;
+    const date = (v: string | undefined) => (v ? new Date(v) : null);
+
     const data = {
       itemId,
       type: acc.type ?? null,
@@ -172,6 +177,13 @@ export class SyncService {
       balance:
         acc.balance != null ? new Prisma.Decimal(acc.balance) : null,
       currencyCode: acc.currencyCode ?? null,
+      creditLimit: decimal(credit?.creditLimit),
+      availableCreditLimit: decimal(credit?.availableCreditLimit),
+      minimumPayment: decimal(credit?.minimumPayment),
+      balanceCloseDate: date(credit?.balanceCloseDate),
+      balanceDueDate: date(credit?.balanceDueDate),
+      cardBrand: credit?.brand ?? null,
+      cardLevel: credit?.level ?? null,
     };
     await this.prisma.account.upsert({
       where: { id: acc.id },

@@ -37,6 +37,17 @@ model Account {
   balance       Decimal? @db.Decimal(18, 2)
   currencyCode  String?
 
+  // Dados de cartao de credito (creditData da Pluggy; nulos em conta corrente).
+  // Sem isto nao da pra saber quando a fatura vence nem quanto de limite sobrou
+  // — que e justamente o que evita cair no rotativo.
+  creditLimit          Decimal?  @db.Decimal(18, 2)
+  availableCreditLimit Decimal?  @db.Decimal(18, 2)
+  minimumPayment       Decimal?  @db.Decimal(18, 2)
+  balanceCloseDate     DateTime? // fechamento da fatura atual
+  balanceDueDate       DateTime? // vencimento da fatura atual
+  cardBrand            String?
+  cardLevel            String?
+
   transactions Transaction[]
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt

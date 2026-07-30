@@ -3,11 +3,77 @@
 // Cartões: contas de crédito com fatura atual e últimas compras.
 
 import { useEffect, useState } from "react";
-import { api, brl0, DbAccount, DbTransaction } from "@/lib/api";
+import { api, brl0, daysUntil, DbAccount, DbTransaction } from "@/lib/api";
 import { useDataVersion } from "@/lib/bus";
 import BlueHeader from "@/components/Header";
 import TxList from "@/components/TxList";
 import { Amount, Card, EmptyState, ErrorCard, LoadingCard, Money } from "@/components/ui";
+
+/** Barra de limite usado + vencimento da fatura. */
+function CardStatus({ account }: { account: DbAccount }) {
+  const limit = Number(account.creditLimit ?? 0);
+  const available = account.availableCreditLimit
+    ? Number(account.availableCreditLimit)
+    : null;
+  const used = limit > 0 && available !== null ? limit - available : null;
+  const usedPct = used !== null && limit > 0 ? Math.min((used / limit) * 100, 100) : null;
+
+  const dias = account.balanceDueDate ? daysUntil(account.balanceDueDate) : null;
+  const vencendo = dias !== null && dias >= 0 && dias <= 5;
+  const vencida = dias !== null && dias < 0;
+
+  // Cartão sem nenhum dado de crédito sincronizado ainda: nada a mostrar.
+  if (usedPct === null && dias === null) return null;
+
+  return (
+    <div className="mt-4 space-y-3">
+      {dias !== null && (
+        <div
+          className={`flex items-center justify-between rounded-2xl px-4 py-3 ${
+            vencida || vencendo ? "bg-neg/15" : "bg-soft"
+          }`}
+        >
+          <span className="text-sm text-ink-dim">Vencimento</span>
+          <span
+            className={`text-sm font-bold ${
+              vencida || vencendo ? "text-neg" : "text-ink"
+            }`}
+          >
+            {vencida
+              ? `venceu há ${Math.abs(dias)} ${Math.abs(dias) === 1 ? "dia" : "dias"}`
+              : dias === 0
+                ? "vence hoje"
+                : `em ${dias} ${dias === 1 ? "dia" : "dias"}`}
+          </span>
+        </div>
+      )}
+
+      {usedPct !== null && (
+        <div>
+          <div className="flex items-center justify-between text-sm mb-1.5">
+            <span className="text-ink-dim">Limite usado</span>
+            <span className="text-ink font-semibold">
+              <Amount>{brl0(used ?? 0)}</Amount> de <Amount>{brl0(limit)}</Amount>
+            </span>
+          </div>
+          <div className="h-2 rounded-full bg-soft overflow-hidden">
+            <div
+              className={`h-full rounded-full ${
+                usedPct >= 80 ? "bg-neg" : usedPct >= 50 ? "bg-amber" : "bg-pos"
+              }`}
+              style={{ width: `${usedPct}%` }}
+            />
+          </div>
+          <div className="text-xs text-ink-dim mt-1.5">
+            {usedPct >= 80
+              ? `${Math.round(usedPct)}% do limite comprometido — cuidado com o rotativo.`
+              : `Restam ${brl0(available ?? 0)} de limite.`}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function CartoesPage() {
   const version = useDataVersion();
@@ -64,7 +130,9 @@ export default function CartoesPage() {
                     <span className="font-semibold">
                       {a.marketingName ?? a.name ?? a.item.connectorName}
                     </span>
-                    <span className="text-white/60 text-sm">💳</span>
+                    <span className="text-white/60 text-sm">
+                      {a.cardBrand ?? "💳"}
+                    </span>
                   </div>
                   <div className="text-white/60 text-sm mt-5 tracking-widest">
                     •••• {a.number?.slice(-4) ?? "0000"}
@@ -77,6 +145,9 @@ export default function CartoesPage() {
                     />
                   </div>
                 </div>
+
+                <CardStatus account={a} />
+
                 <div className="mt-4">
                   <div className="text-sm font-semibold text-ink-dim mb-3">
                     Últimas compras

@@ -14,6 +14,17 @@ export interface PluggyItem {
   updatedAt?: string;
 }
 
+/** Bloco `creditData`, presente apenas em contas do tipo CREDIT. */
+export interface PluggyCreditData {
+  level?: string;
+  brand?: string;
+  balanceCloseDate?: string;
+  balanceDueDate?: string;
+  availableCreditLimit?: number;
+  creditLimit?: number;
+  minimumPayment?: number;
+}
+
 export interface PluggyAccountFull {
   id: string;
   itemId: string;
@@ -24,6 +35,7 @@ export interface PluggyAccountFull {
   number?: string;
   balance?: number;
   currencyCode?: string;
+  creditData?: PluggyCreditData | null;
 }
 
 export interface PluggyInvestment {

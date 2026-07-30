@@ -131,8 +131,25 @@ export interface DbAccount {
   number: string | null;
   balance: string | null; // Decimal serializado
   currencyCode: string | null;
+  // Só em cartão de crédito (creditData da Pluggy)
+  creditLimit: string | null;
+  availableCreditLimit: string | null;
+  minimumPayment: string | null;
+  balanceCloseDate: string | null;
+  balanceDueDate: string | null;
+  cardBrand: string | null;
+  cardLevel: string | null;
   item: { connectorName: string; lastSyncedAt: string };
   _count: { transactions: number };
+}
+
+/** Dias até o vencimento da fatura (negativo = já venceu). */
+export function daysUntil(dateIso: string): number {
+  const today = todayParts();
+  const { year, month, day } = zonedParts(dateIso);
+  const a = Date.UTC(today.year, today.month - 1, today.day);
+  const b = Date.UTC(year, month - 1, day);
+  return Math.round((b - a) / 86_400_000);
 }
 
 export interface DbInvestment {
