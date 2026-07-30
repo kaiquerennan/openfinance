@@ -76,29 +76,40 @@ export class ManualController {
     return this.ensureWallet();
   }
 
-  /** POST /manual/transactions — registra despesa/receita manual. */
+  /**
+   * POST /manual/transactions — registra despesa/receita manual.
+   *
+   * O lancamento e o ajuste de saldo vao na mesma transacao de banco: se um
+   * dos dois falhar, nenhum e aplicado. Separados, uma falha no meio deixaria
+   * o saldo da Carteira errado de forma permanente, sem como reconciliar.
+   */
   @Post('transactions')
   async create(@Body() dto: CreateManualTxDto) {
     await this.ensureWallet();
     const signed =
       dto.kind === 'expense' ? -Math.abs(dto.amount) : Math.abs(dto.amount);
-    const tx = await this.prisma.transaction.create({
-      data: {
-        id: randomUUID(),
-        accountId: MANUAL_ACCOUNT_ID,
-        date: new Date(`${dto.date}T12:00:00Z`),
-        description: dto.description,
-        amount: signed,
-        currencyCode: 'BRL',
-        type: signed < 0 ? 'DEBIT' : 'CREDIT',
-        category: dto.category ?? null,
-        status: 'POSTED',
-      },
-    });
-    await this.prisma.account.update({
-      where: { id: MANUAL_ACCOUNT_ID },
-      data: { balance: { increment: signed } },
-    });
+
+    const [tx] = await this.prisma.$transaction([
+      this.prisma.transaction.create({
+        data: {
+          id: randomUUID(),
+          accountId: MANUAL_ACCOUNT_ID,
+          // meio-dia em Brasilia: a data escolhida nao escorrega de dia
+          // ao ser lida em qualquer fuso
+          date: new Date(`${dto.date}T15:00:00Z`),
+          description: dto.description,
+          amount: signed,
+          currencyCode: 'BRL',
+          type: signed < 0 ? 'DEBIT' : 'CREDIT',
+          category: dto.category ?? null,
+          status: 'POSTED',
+        },
+      }),
+      this.prisma.account.update({
+        where: { id: MANUAL_ACCOUNT_ID },
+        data: { balance: { increment: signed } },
+      }),
+    ]);
     return tx;
   }
 
@@ -109,11 +120,13 @@ export class ManualController {
     if (!tx) throw new NotFoundException('Transacao nao encontrada');
     if (tx.accountId !== MANUAL_ACCOUNT_ID)
       throw new ForbiddenException('Apenas lancamentos manuais podem ser removidos');
-    await this.prisma.transaction.delete({ where: { id } });
-    await this.prisma.account.update({
-      where: { id: MANUAL_ACCOUNT_ID },
-      data: { balance: { decrement: Number(tx.amount) } },
-    });
+    await this.prisma.$transaction([
+      this.prisma.transaction.delete({ where: { id } }),
+      this.prisma.account.update({
+        where: { id: MANUAL_ACCOUNT_ID },
+        data: { balance: { decrement: Number(tx.amount) } },
+      }),
+    ]);
     return { deleted: id };
   }
 }
