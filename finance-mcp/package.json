@@ -1,0 +1,23 @@
+{
+  "name": "finance-mcp",
+  "version": "0.1.0",
+  "description": "Servidor MCP que expoe os dados do finance-app (contas, transacoes, analytics, metas) para clientes como o Claude",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "finance-mcp": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/index.js",
+    "smoke": "node scripts/smoke.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.6.0"
+  }
+}
