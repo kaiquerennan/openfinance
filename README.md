@@ -43,7 +43,7 @@ claude mcp add finance -s user -- node "$PWD/dist/index.js"
 | `PLUGGY_WEBHOOK_SECRET` | Opcional — protege `POST /pluggy/webhook` |
 | `CORS_ORIGINS` | Domínio do frontend em produção (ex.: sua URL da Vercel) |
 
-Nenhuma dessas credenciais fica no repositório — cada pessoa que rodar o projeto usa as suas próprias.
+Nenhuma dessas credenciais fica no repositório — cada pessoa que rodar o projeto tem que usar as suas próprias.
 
 ## Deploy
 
