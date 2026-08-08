@@ -23,7 +23,6 @@ import {
 import { useDataVersion } from "@/lib/bus";
 import BlueHeader from "@/components/Header";
 import LimitSheet from "@/components/LimitSheet";
-import ReserveCard from "@/components/ReserveCard";
 import TxList from "@/components/TxList";
 import { BudgetPace } from "@/components/Charts";
 import {
@@ -192,8 +191,6 @@ export default function HomePage() {
             </button>
           ))}
         </div>
-
-        {report && <ReserveCard reserve={report.data.reserve} />}
 
         {/* Resultado parcial (Receitas / Despesas / Resultado) */}
         <Card className="cursor-pointer" onClick={() => router.push("/analises")}>
