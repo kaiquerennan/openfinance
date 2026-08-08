@@ -102,7 +102,11 @@ export default function InvestimentosPage() {
                 <div key={inv.id} className="flex items-center justify-between py-2.5">
                   <div className="min-w-0 pr-3">
                     <div className="text-[15px] truncate">{inv.name ?? inv.type ?? "Posição"}</div>
-                    <div className="text-[13px] text-ink-dim">{inv.type ?? "-"}</div>
+                    <div className="text-[13px] text-ink-dim">
+                      {inv.subtype === "CONTA_REMUNERADA"
+                        ? "Conta remunerada"
+                        : inv.type ?? "-"}
+                    </div>
                   </div>
                   <div className="text-[15px] font-medium shrink-0">
                     <Amount>{brl0(Number(inv.balance ?? 0))}</Amount>

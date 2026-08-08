@@ -16,6 +16,10 @@ import { PrismaService } from '../prisma/prisma.service';
 import { PluggyWebhookPayload } from '../pluggy/pluggy.types';
 import { Public } from '../auth/public.decorator';
 import { AlertsService } from '../alerts/alerts.service';
+import {
+  isYieldAccount,
+  yieldAccountAsInvestment,
+} from '../shared/yield-accounts';
 
 /** Teto de itens por pagina em GET /pluggy/db/transactions. */
 const MAX_PAGE_SIZE = 1000;
@@ -164,14 +168,26 @@ export class SyncController {
    * GET /pluggy/db/investments — posicoes de investimento persistidas
    * (saldo real reportado pela instituicao, com rendimento ja embutido).
    * Considera "ativa" toda posicao cujo status nao seja de resgate total.
+   *
+   * Junto vem o saldo das contas remuneradas (ver `isYieldAccount`), que a
+   * Pluggy entrega como conta corrente mas rende feito investimento.
    */
   @Get('db/investments')
   async dbInvestments() {
-    const investments = await this.prisma.investment.findMany({
-      include: { item: { select: { connectorName: true, lastSyncedAt: true } } },
-      orderBy: { balance: 'desc' },
-    });
-    const active = investments.filter((i) => i.status !== 'TOTAL_WITHDRAWAL');
+    const withItem = {
+      item: { select: { connectorName: true, lastSyncedAt: true } },
+    };
+    const [investments, accounts] = await Promise.all([
+      this.prisma.investment.findMany({ include: withItem }),
+      this.prisma.account.findMany({
+        where: { type: 'BANK' },
+        include: withItem,
+      }),
+    ]);
+    const active = [
+      ...investments.filter((i) => i.status !== 'TOTAL_WITHDRAWAL'),
+      ...accounts.filter(isYieldAccount).map(yieldAccountAsInvestment),
+    ].sort((a, b) => Number(b.balance ?? 0) - Number(a.balance ?? 0));
     const total = active.reduce((sum, i) => sum + Number(i.balance ?? 0), 0);
     return { total, investments: active };
   }

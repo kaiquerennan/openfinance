@@ -260,7 +260,17 @@ export function accountTitle(a: DbAccount) {
 export function accountKindLabel(a: DbAccount) {
   if (a.subtype === 'MANUAL') return 'Conta manual';
   if (a.type === 'CREDIT') return 'Cartão de crédito';
+  if (isYieldAccount(a)) return 'Conta remunerada';
   return 'Conta corrente';
+}
+
+/**
+ * Conta cujo saldo rende sozinho (a 99Pay remunera em CDI). O saldo dela
+ * também aparece em Investimentos — o back-end faz a mesma leitura em
+ * `shared/yield-accounts.ts`.
+ */
+export function isYieldAccount(a: { name: string | null; marketingName: string | null }) {
+  return /\b99\s*pay\b/i.test(`${a.name ?? ''} ${a.marketingName ?? ''}`);
 }
 
 /** Carteira primeiro, como no app de referência. */
