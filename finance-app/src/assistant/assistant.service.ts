@@ -1,31 +1,41 @@
 import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
-import { GoogleGenAI } from '@google/genai';
+import axios, { AxiosInstance } from 'axios';
 import { AnalyticsService } from '../analytics/analytics.service';
 import { PrismaService } from '../prisma/prisma.service';
 
-const MODEL = 'gemini-flash-latest';
+const MODEL = 'deepseek-chat';
+const BASE_URL = 'https://api.deepseek.com';
 /** Quantos meses de historico (alem do mes-alvo) entram no contexto geral. */
 const HISTORY_MONTHS = 12;
+
+/** Resposta da API de chat da DeepSeek (compativel com o formato da OpenAI). */
+interface ChatCompletion {
+  choices?: { message?: { content?: string } }[];
+}
 
 @Injectable()
 export class AssistantService {
   private readonly logger = new Logger(AssistantService.name);
-  private client: GoogleGenAI | null = null;
+  private client: AxiosInstance | null = null;
 
   constructor(
     private readonly analytics: AnalyticsService,
     private readonly prisma: PrismaService,
   ) {}
 
-  private getClient(): GoogleGenAI {
+  private getClient(): AxiosInstance {
     if (!this.client) {
-      const apiKey = process.env.GEMINI_API_KEY;
+      const apiKey = process.env.DEEPSEEK_API_KEY;
       if (!apiKey) {
         throw new InternalServerErrorException(
-          'GEMINI_API_KEY não configurada no servidor',
+          'DEEPSEEK_API_KEY não configurada no servidor',
         );
       }
-      this.client = new GoogleGenAI({ apiKey });
+      this.client = axios.create({
+        baseURL: BASE_URL,
+        timeout: 60_000,
+        headers: { Authorization: `Bearer ${apiKey}` },
+      });
     }
     return this.client;
   }
@@ -108,14 +118,20 @@ export class AssistantService {
       `${JSON.stringify(currentReport.narrative)}`;
 
     try {
-      const response = await this.getClient().models.generateContent({
-        model: MODEL,
-        contents: question,
-        config: { systemInstruction },
-      });
-      return { answer: response.text ?? '' };
+      const { data } = await this.getClient().post<ChatCompletion>(
+        '/chat/completions',
+        {
+          model: MODEL,
+          messages: [
+            { role: 'system', content: systemInstruction },
+            { role: 'user', content: question },
+          ],
+          stream: false,
+        },
+      );
+      return { answer: data.choices?.[0]?.message?.content ?? '' };
     } catch (err) {
-      this.logger.error(`Falha ao consultar Gemini: ${(err as Error).message}`);
+      this.logger.error(`Falha ao consultar DeepSeek: ${(err as Error).message}`);
       throw new InternalServerErrorException('Falha ao consultar o assistente');
     }
   }

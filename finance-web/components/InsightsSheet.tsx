@@ -1,6 +1,6 @@
 "use client";
 
-// Chat "Visor BETA": pergunta livre pro Gemini (com contexto financeiro) +
+// Chat "Visor BETA": pergunta livre pra IA (com contexto financeiro) +
 // sugestões rápidas + insights automáticos (regras) como mensagens iniciais.
 
 import { useEffect, useRef, useState } from "react";
