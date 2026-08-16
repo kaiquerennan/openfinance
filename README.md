@@ -1,12 +1,12 @@
 # API Open Finance
 
-App pessoal de finanças com sincronização automática via Open Finance (Pluggy). Dashboard mobile-first com visão geral, contas, transações, categorias, metas e análises.
+App pessoal de finanças com sincronização automática via Open Finance (Pluggy). Dashboard mobile-first com visão geral, contas, transações, categorias, parcelas, metas e análises.
 
 ## Estrutura
 
 - **`finance-app/`** — backend (NestJS + Prisma + Postgres). Integração com a Pluggy, sync automático a cada 3h, webhook de eventos, analytics e planejamento (orçamentos/metas).
 - **`finance-web/`** — frontend (Next.js). Dashboard mobile com layout próprio para desktop (menu lateral), widget Pluggy Connect embutido e login por senha.
-- **`finance-mcp/`** — servidor MCP. Expõe contas, transações, analytics, metas e orçamentos como tools para clientes de IA (Claude Code, Claude Desktop), consultando o backend por HTTP. Somente leitura.
+- **`finance-mcp/`** — servidor MCP. Expõe contas, transações, analytics, parcelas, metas e orçamentos como tools para clientes de IA (Claude Code, Claude Desktop), consultando o backend por HTTP. Somente leitura.
 
 ## Rodando localmente
 

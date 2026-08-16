@@ -51,6 +51,22 @@ export interface PluggyInvestment {
   date?: string;
 }
 
+/**
+ * Bloco `creditCardMetadata` de uma transacao de cartao. So vem preenchido em
+ * parte dos emissores — quando falta, a parcela costuma estar escrita na
+ * propria descricao ("MERCADO 03/10").
+ */
+export interface PluggyCreditCardMetadata {
+  installmentNumber?: number;
+  totalInstallments?: number;
+  /** Valor cheio da compra parcelada. */
+  totalAmount?: number;
+  purchaseDate?: string;
+  payeeMCC?: number;
+  cardNumber?: string;
+  billId?: string;
+}
+
 export interface PluggyTransaction {
   id: string;
   accountId: string;
@@ -65,6 +81,7 @@ export interface PluggyTransaction {
   categoryId?: string;
   providerCode?: string;
   status?: string;
+  creditCardMetadata?: PluggyCreditCardMetadata | null;
 }
 
 /** Envelope paginado (offset) — usado por endpoints legados como /accounts. */

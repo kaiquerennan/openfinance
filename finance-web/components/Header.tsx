@@ -37,6 +37,7 @@ export const MENU = [
   { href: "/contas", label: "Contas", icon: <IconWallet size={20} /> },
   { href: "/investimentos", label: "Investimentos", icon: <IconBars size={20} /> },
   { href: "/cartoes", label: "Cartões", icon: <IconCard size={20} /> },
+  { href: "/parcelas", label: "Parcelas", icon: <IconCalendarDots size={20} /> },
   { href: "/metas", label: "Metas", icon: <IconTrophy size={20} /> },
   {
     href: "mailto:kaiquerennan@gmail.com?subject=Suporte",

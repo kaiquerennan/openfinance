@@ -145,6 +145,13 @@ model Transaction {
   providerCode   String?
   status         String?
 
+  // Parcelamento (creditCardMetadata da Pluggy, ou lido da descricao).
+  // O extrato mostra so a parcela do mes; sem o total nao da pra saber
+  // quanto do mes que vem ja esta comprometido antes de gastar.
+  installmentNumber      Int?
+  totalInstallments      Int?
+  installmentTotalAmount Decimal? @db.Decimal(18, 2)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

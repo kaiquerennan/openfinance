@@ -294,6 +294,54 @@ export const TOOLS: Tool[] = [
   },
 
   {
+    name: 'parcelas',
+    title: 'Compras parceladas em aberto',
+    description:
+      'Compras parceladas que ainda tem parcela a vencer, remontadas a partir do extrato dos cartoes, ' +
+      'e quanto de cada mes futuro elas ja ocupam. Use quando a pergunta for sobre divida ja contratada, ' +
+      'se cabe parcelar algo novo, ou por que a fatura dos proximos meses ja esta comprometida. ' +
+      'Nao aparece em transacoes: la so existe a parcela do mes.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        meses: {
+          type: 'integer',
+          minimum: 1,
+          maximum: 24,
+          description: 'Tamanho do cronograma em meses (padrao 6).',
+        },
+      },
+      additionalProperties: false,
+    },
+    async run(api, args) {
+      const data = await api.get<any>('/installments', { months: args.meses ?? 6 });
+      return {
+        mesDeReferencia: data.month,
+        totalAindaAPagar: data.committedTotal,
+        rendaMensalDeReferencia: data.monthlyIncome,
+        percentualDaRendaNesteMes: data.currentSharePct,
+        livreAPartirDe: data.freeFrom,
+        porMes: (data.monthly ?? []).map((m: any) => ({
+          mes: m.month,
+          valor: m.amount,
+          compras: m.count,
+        })),
+        compras: (data.plans ?? []).map((p: any) => ({
+          descricao: p.description,
+          cartao: p.accountName,
+          valorDaParcela: p.installmentAmount,
+          parcelasPagas: p.paidInstallments,
+          totalDeParcelas: p.totalInstallments,
+          faltamParcelas: p.remaining,
+          faltaPagar: p.remainingAmount,
+          valorTotalDaCompra: p.totalAmount,
+          ultimaParcelaEm: p.endsOn,
+        })),
+      };
+    },
+  },
+
+  {
     name: 'orcamentos',
     title: 'Orcamentos',
     description:

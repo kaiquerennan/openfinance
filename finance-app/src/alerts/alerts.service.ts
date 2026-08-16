@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 import { PrismaService } from '../prisma/prisma.service';
 import { AnalyticsService } from '../analytics/analytics.service';
+import { InstallmentsService } from '../installments/installments.service';
 import { dayOfMonth, monthKey } from '../analytics/timezone';
 
 /**
@@ -15,6 +16,13 @@ const REPEAT_AFTER_HOURS = 20;
 
 /** Aumento mensal minimo (R$) para um reajuste virar notificacao. */
 const MIN_RAISE_TO_ALERT = 5;
+
+/**
+ * A partir de quanto da renda comprometida em parcela o mes seguinte vira
+ * aviso. Um terco da renda ja contratada antes do mes comecar e o ponto em
+ * que parcelar de novo deixa de ser uma escolha confortavel.
+ */
+const INSTALLMENT_ALERT_SHARE = 30;
 
 interface Alert {
   /** Identidade do alerta. Muda quando o conteudo muda de verdade. */
@@ -38,6 +46,7 @@ export class AlertsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly analytics: AnalyticsService,
+    private readonly installments: InstallmentsService,
     private readonly config: ConfigService,
   ) {}
 
@@ -74,10 +83,11 @@ export class AlertsService {
 
   private async collect(): Promise<Alert[]> {
     const month = monthKey(new Date());
-    const [report, budgets, accounts] = await Promise.all([
+    const [report, budgets, accounts, parcelas] = await Promise.all([
       this.analytics.report(month).catch(() => null),
       this.prisma.budget.findMany(),
       this.prisma.account.findMany({ where: { type: 'CREDIT' } }),
+      this.installments.overview(2).catch(() => null),
     ]);
     if (!report) return [];
 
@@ -139,6 +149,21 @@ export class AlertsService {
         key: `sub-raise:${s.description}:${s.currentAmount}`,
         text: `"${s.description}" subiu ${s.increasePct}%: a última cobrança foi ${brl(s.currentAmount)}.`,
       });
+    }
+
+    // 5) Parcelas ja contratadas pesando no mes que vem.
+    // Este e o unico gasto que da pra ver antes de acontecer: no mes seguinte
+    // ele ja esta decidido, e avisar depois nao muda nada.
+    const proximo = parcelas?.nextMonth;
+    const renda = parcelas?.monthlyIncome ?? 0;
+    if (proximo && proximo.amount > 0 && renda > 0) {
+      const share = Math.round((proximo.amount / renda) * 100);
+      if (share >= INSTALLMENT_ALERT_SHARE) {
+        out.push({
+          key: `installments:${proximo.month}:${Math.round(proximo.amount)}`,
+          text: `Parcelas já contratadas ocupam ${share}% da sua renda em ${proximo.month}: ${brl(proximo.amount)} em ${proximo.count} compra(s).`,
+        });
+      }
     }
 
     return out;

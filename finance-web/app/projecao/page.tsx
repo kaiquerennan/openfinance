@@ -4,6 +4,7 @@
 // poupança dos últimos 3 meses (já calculada no backend, mesmo número da
 // dica "mantendo o ritmo atual...") se mantém constante.
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import {
   AnalyticsReport,
@@ -12,6 +13,7 @@ import {
   brl0,
   currentMonth,
   DbAccount,
+  InstallmentsOverview,
   addMonths,
   monthLabel,
 } from "@/lib/api";
@@ -28,6 +30,7 @@ export default function ProjecaoPage() {
   const version = useDataVersion();
   const [report, setReport] = useState<AnalyticsReport | null>(null);
   const [accounts, setAccounts] = useState<DbAccount[] | null>(null);
+  const [parcelas, setParcelas] = useState<InstallmentsOverview | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const month = currentMonth();
@@ -39,6 +42,9 @@ export default function ProjecaoPage() {
         setAccounts(accs);
       })
       .catch((e) => setError(e.message));
+    // Parcela já contratada é a única parte do futuro que não é estimativa;
+    // se falhar, a projeção continua — só perde essa camada.
+    api.installments(MONTHS_AHEAD).then(setParcelas).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [version]);
 
@@ -119,17 +125,49 @@ export default function ProjecaoPage() {
               <ProjectionChart points={points} />
             </Card>
 
+            {parcelas && parcelas.committedTotal > 0 && (
+              <Card>
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <div className="text-[15px] font-semibold text-ink">
+                      Já comprometido em parcelas
+                    </div>
+                    <p className="text-xs text-ink-dim mt-1 max-w-xs">
+                      Compras que já foram feitas e vão ser cobradas nos próximos meses
+                      {parcelas.freeFrom ? `, até ${monthLabel(parcelas.freeFrom)}` : ""}.
+                    </p>
+                  </div>
+                  <Link
+                    href="/parcelas"
+                    className="text-right shrink-0 text-xl font-bold text-ink"
+                  >
+                    <Amount>{brl0(parcelas.committedTotal)}</Amount>
+                    <div className="text-xs font-semibold text-accent">ver detalhe</div>
+                  </Link>
+                </div>
+              </Card>
+            )}
+
             <Card className="divide-y divide-edge">
-              {points.map((p, i) => (
+              {points.map((p, i) => {
+                const mes = addMonths(month, i);
+                const parcela = parcelas?.monthly.find((m) => m.month === mes);
+                return (
                 <div key={i} className="flex items-center justify-between py-3">
                   <div>
                     <div className="text-[15px] font-semibold text-ink">
-                      {monthLabel(addMonths(month, i))}
+                      {monthLabel(mes)}
                     </div>
                     <div className="text-xs text-ink-dim">
                       Resultado do mês:{" "}
                       <Amount>{`${p.resultado < 0 ? "-" : "+"}${brl(Math.abs(p.resultado))}`}</Amount>
                     </div>
+                    {parcela && parcela.amount > 0 && (
+                      <div className="text-xs text-ink-faint mt-0.5">
+                        Inclui <Amount>{brl(parcela.amount)}</Amount> de parcelas já
+                        contratadas
+                      </div>
+                    )}
                   </div>
                   <div className="text-right">
                     <div className="text-[15px] font-bold text-ink">
@@ -138,7 +176,8 @@ export default function ProjecaoPage() {
                     <div className="text-xs text-ink-dim">Saldo projetado</div>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </Card>
           </div>
         )}

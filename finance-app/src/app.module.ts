@@ -12,6 +12,7 @@ import { PlanningModule } from './planning/planning.module';
 import { AuthModule } from './auth/auth.module';
 import { AssistantModule } from './assistant/assistant.module';
 import { AlertsModule } from './alerts/alerts.module';
+import { InstallmentsModule } from './installments/installments.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { AlertsModule } from './alerts/alerts.module';
     SyncModule,
     ConnectModule,
     AnalyticsModule,
+    InstallmentsModule,
     PlanningModule,
     AssistantModule,
     AlertsModule,

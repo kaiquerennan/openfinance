@@ -13,6 +13,26 @@ import {
 /** Quantas transacoes processar por lote (evita $transaction gigante). */
 const TX_CHUNK = 100;
 
+/**
+ * Dados de parcelamento da transacao.
+ *
+ * Guardamos o que a Pluggy manda em `creditCardMetadata`; quando o emissor nao
+ * preenche, quem le a parcela e a analise, a partir da descricao. Persistir
+ * aqui o que veio pronto evita reinterpretar texto quando a informacao ja
+ * chegou estruturada.
+ */
+function installmentOf(t: PluggyTransaction) {
+  const meta = t.creditCardMetadata;
+  const number = meta?.installmentNumber ?? null;
+  const total = meta?.totalInstallments ?? null;
+  return {
+    installmentNumber: number,
+    totalInstallments: total,
+    installmentTotalAmount:
+      meta?.totalAmount != null ? new Prisma.Decimal(meta.totalAmount) : null,
+  };
+}
+
 export interface AccountSyncResult {
   accountId: string;
   name?: string;
@@ -237,6 +257,7 @@ export class SyncService {
             categoryId: t.categoryId ?? null,
             providerCode: t.providerCode ?? null,
             status: t.status ?? null,
+            ...installmentOf(t),
           };
           return this.prisma.transaction.upsert({
             where: { id: t.id },

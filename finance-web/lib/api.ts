@@ -328,6 +328,41 @@ export interface GoalSuggestion {
   month: string;
 }
 
+/** Uma compra parcelada em aberto, remontada a partir do extrato do cartão. */
+export interface InstallmentPlan {
+  key: string;
+  description: string;
+  accountId: string;
+  accountName: string;
+  installmentAmount: number;
+  totalInstallments: number;
+  paidInstallments: number;
+  remaining: number;
+  remainingAmount: number;
+  totalAmount: number;
+  lastMonth: string; // YYYY-MM
+  nextMonth: string | null;
+  endsOn: string;
+}
+
+export interface MonthCommitment {
+  month: string; // YYYY-MM
+  amount: number;
+  count: number;
+}
+
+/** Quanto dos próximos meses já está comprometido com parcelas. */
+export interface InstallmentsOverview {
+  month: string;
+  plans: InstallmentPlan[];
+  monthly: MonthCommitment[];
+  committedTotal: number;
+  nextMonth: MonthCommitment | null;
+  monthlyIncome: number | null;
+  currentSharePct: number | null;
+  freeFrom: string | null;
+}
+
 export interface ManualTxInput {
   description: string;
   amount: number;
@@ -406,6 +441,9 @@ export const api = {
   syncAll: () => post<SyncStarted>('/pluggy/sync'),
   createConnectToken: () =>
     post<{ accessToken: string }>('/pluggy/connect-token'),
+
+  installments: (months = 6) =>
+    get<InstallmentsOverview>(`/installments?months=${months}`),
 
   budgets: () => get<Budget[]>('/budgets'),
   setBudget: (category: string, amount: number) =>
