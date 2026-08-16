@@ -365,6 +365,18 @@ export interface InstallmentsOverview {
   freeFrom: string | null;
 }
 
+/** Gasto recente muito acima do padrão do próprio histórico. */
+export interface Anomaly {
+  transactionId: string;
+  description: string;
+  amount: number;
+  /** Valor de referência usado na comparação. */
+  typical: number;
+  /** 'merchant' = caro para este lugar; 'unusual' = caro para o seu padrão. */
+  reason: 'merchant' | 'unusual';
+  times: number;
+}
+
 /** Regra que corrige a categoria de tudo que casa com `pattern`. */
 export interface CategoryRule {
   id: string;
@@ -454,6 +466,8 @@ export const api = {
 
   installments: (months = 6) =>
     get<InstallmentsOverview>(`/installments?months=${months}`),
+
+  anomalies: () => get<Anomaly[]>('/alerts/anomalies'),
 
   categoryRules: () => get<CategoryRule[]>('/categories/rules'),
   createCategoryRule: (pattern: string, category: string) =>

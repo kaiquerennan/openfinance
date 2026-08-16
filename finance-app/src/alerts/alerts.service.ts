@@ -4,6 +4,7 @@ import axios from 'axios';
 import { PrismaService } from '../prisma/prisma.service';
 import { AnalyticsService } from '../analytics/analytics.service';
 import { InstallmentsService } from '../installments/installments.service';
+import { Anomaly, findAnomalies } from './anomaly';
 import { dayOfMonth, monthKey } from '../analytics/timezone';
 
 /**
@@ -28,6 +29,12 @@ interface Alert {
   /** Identidade do alerta. Muda quando o conteudo muda de verdade. */
   key: string;
   text: string;
+  /**
+   * Avisa uma unica vez, para sempre. Serve para o que se refere a um fato
+   * pontual (uma compra especifica): repetir depois de um dia nao acrescenta
+   * informacao nenhuma, so ensina a ignorar a notificacao.
+   */
+  once?: boolean;
 }
 
 const brl = (n: number) =>
@@ -79,15 +86,22 @@ export class AlertsService {
     this.logger.log(`${pending.length} alerta(s) enviado(s).`);
   }
 
+  /** Gastos recentes fora do padrao, para a tela. Nao envia nada. */
+  async anomalies(): Promise<Anomaly[]> {
+    const extrato = await this.analytics.transactions(6).catch(() => []);
+    return findAnomalies(extrato, new Date());
+  }
+
   // ---------------------------------------------------------------------------
 
   private async collect(): Promise<Alert[]> {
     const month = monthKey(new Date());
-    const [report, budgets, accounts, parcelas] = await Promise.all([
+    const [report, budgets, accounts, parcelas, extrato] = await Promise.all([
       this.analytics.report(month).catch(() => null),
       this.prisma.budget.findMany(),
       this.prisma.account.findMany({ where: { type: 'CREDIT' } }),
       this.installments.overview(2).catch(() => null),
+      this.analytics.transactions(6).catch(() => []),
     ]);
     if (!report) return [];
 
@@ -166,6 +180,15 @@ export class AlertsService {
       }
     }
 
+    // 6) Gasto fora do padrao, comparado com o historico da propria pessoa.
+    for (const a of findAnomalies(extrato, new Date())) {
+      const texto =
+        a.reason === 'merchant'
+          ? `"${a.description}" veio ${brl(a.amount)} — ${a.times}x o de sempre nesse lugar (${brl(a.typical)}).`
+          : `Gasto fora do padrão: ${brl(a.amount)} em "${a.description}". Suas compras raramente passam de ${brl(a.typical)}.`;
+      out.push({ key: `anomaly:${a.transactionId}`, text: texto, once: true });
+    }
+
     return out;
   }
 
@@ -176,7 +199,9 @@ export class AlertsService {
     });
     const lastSent = new Map(logs.map((l) => [l.key, l.sentAt.getTime()]));
     const limit = Date.now() - REPEAT_AFTER_HOURS * 3_600_000;
-    return alerts.filter((a) => (lastSent.get(a.key) ?? 0) < limit);
+    return alerts.filter((a) =>
+      a.once ? !lastSent.has(a.key) : (lastSent.get(a.key) ?? 0) < limit,
+    );
   }
 
   /**

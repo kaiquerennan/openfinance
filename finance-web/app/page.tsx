@@ -9,6 +9,7 @@ import {
   accountKindLabel,
   accountTitle,
   AnalyticsReport,
+  Anomaly,
   api,
   brl,
   brl0,
@@ -21,6 +22,7 @@ import {
   sortAccounts,
 } from "@/lib/api";
 import { useDataVersion } from "@/lib/bus";
+import AnomalyCard from "@/components/AnomalyCard";
 import BlueHeader from "@/components/Header";
 import LimitSheet from "@/components/LimitSheet";
 import TxList from "@/components/TxList";
@@ -54,6 +56,7 @@ export default function HomePage() {
   const [accounts, setAccounts] = useState<DbAccount[] | null>(null);
   const [recent, setRecent] = useState<DbTransaction[] | null>(null);
   const [budgets, setBudgets] = useState<Budget[] | null>(null);
+  const [anomalies, setAnomalies] = useState<Anomaly[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [limitOpen, setLimitOpen] = useState(false);
 
@@ -74,6 +77,8 @@ export default function HomePage() {
         setBudgets(buds);
       })
       .catch((e) => setError(e.message));
+    // Aviso raro por natureza: se falhar, a home segue sem ele.
+    api.anomalies().then(setAnomalies).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [version]);
 
@@ -171,6 +176,8 @@ export default function HomePage() {
             ...(report?.narrative.recomendacoes ?? []),
           ].filter(Boolean)}
         />
+
+        <AnomalyCard anomalies={anomalies} />
 
         {/* Atalhos rápidos */}
         <div className="flex items-center gap-2 overflow-x-auto pb-1 -mx-1 px-1">

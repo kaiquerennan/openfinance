@@ -85,6 +85,19 @@ export class AnalyticsService {
     return computed;
   }
 
+  /**
+   * Extrato normalizado dos ultimos meses, com a mesma classificacao do
+   * relatorio. Sai do cache ja carregado: quem precisa olhar transacao a
+   * transacao (alertas, por exemplo) nao paga uma segunda leitura do banco
+   * nem reimplementa a normalizacao de sinal e categoria.
+   */
+  async transactions(months = 6, accountId?: string): Promise<Tx[]> {
+    const snap = await this.snapshotFor(accountId);
+    const cutoff = new Date();
+    cutoff.setMonth(cutoff.getMonth() - months);
+    return snap.tx.filter((t) => t.date >= cutoff);
+  }
+
   // ---------------------------------------------------------------------------
 
   /**
