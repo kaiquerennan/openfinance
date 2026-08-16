@@ -73,6 +73,19 @@ const CATEGORIES: Record<string, CatMeta> = {
   gifts: { label: 'Presentes', icon: '🎁' },
 };
 
+/**
+ * Categorias oferecidas ao corrigir uma transação, em ordem alfabética.
+ *
+ * Só as chaves que o backend também conhece: uma categoria inventada aqui não
+ * entraria em nenhum grupo econômico e sumiria dos totais da análise.
+ */
+export const CATEGORY_OPTIONS = Object.entries(CATEGORIES)
+  .map(([key, meta]) => ({ key, ...meta }))
+  .filter(
+    (option, i, all) => all.findIndex((o) => o.label === option.label) === i,
+  )
+  .sort((a, b) => a.label.localeCompare(b.label, 'pt-BR'));
+
 export function catMeta(category: string | null | undefined): CatMeta {
   if (!category) return { label: 'Sem categoria', icon: '❔' };
   return (

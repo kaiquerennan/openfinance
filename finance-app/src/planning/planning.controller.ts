@@ -11,6 +11,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { groupOf } from '../analytics/category-groups';
+import { resolvedCategory } from '../shared/category';
 import { monthKey } from '../analytics/timezone';
 import {
   AddGoalEntryDto,
@@ -141,6 +142,7 @@ export class PlanningController {
           amount: true,
           type: true,
           category: true,
+          categoryOverride: true,
         },
       }),
       this.prisma.goalSuggestion.findMany({ select: { transactionId: true } }),
@@ -151,7 +153,11 @@ export class PlanningController {
     return candidates
       .filter((t) => !alreadyDecided.has(t.id))
       .map((t) => ({ ...t, signed: signedAmount(t.amount, t.type) }))
-      .filter((t) => groupOf(t.category, t.signed).group === 'investment' && t.signed < 0)
+      .filter(
+        (t) =>
+          groupOf(resolvedCategory(t), t.signed).group === 'investment' &&
+          t.signed < 0,
+      )
       .map((t) => ({
         transactionId: t.id,
         date: t.date,

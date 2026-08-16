@@ -128,6 +128,18 @@ model AlertLog {
   sentAt DateTime @default(now())
 }
 
+/// Regra que corrige a categoria de toda transacao cuja descricao contem
+/// `pattern`. Vale para o que ja esta no banco e para o que chegar nos
+/// proximos syncs — corrigir o mesmo mercado todo mes nao se sustenta.
+model CategoryRule {
+  id        String   @id @default(cuid())
+  /// Trecho procurado na descricao, sempre em minusculas.
+  pattern   String   @unique
+  category  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 /// Uma transacao pertencente a uma Account.
 model Transaction {
   id             String   @id // id da Transaction na Pluggy
@@ -144,6 +156,15 @@ model Transaction {
   categoryId     String?
   providerCode   String?
   status         String?
+
+  /// Categoria corrigida — vence a que veio da Pluggy em toda leitura.
+  /// A classificacao do Open Finance erra bastante, e orcamento, analise e
+  /// score de saude leem categoria: um mercado marcado como "shopping"
+  /// distorce tudo e, sem isto, nao havia como consertar.
+  categoryOverride String?
+  /// Regra que aplicou o override. Null = correcao feita a mao, que nenhuma
+  /// regra pode sobrescrever depois.
+  categoryRuleId   String?
 
   // Parcelamento (creditCardMetadata da Pluggy, ou lido da descricao).
   // O extrato mostra so a parcela do mes; sem o total nao da pra saber

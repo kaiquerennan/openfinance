@@ -23,6 +23,7 @@ import { catColor, catMeta, txGroup } from "@/lib/categories";
 import { bumpData, useDataVersion } from "@/lib/bus";
 import BlueHeader from "@/components/Header";
 import LimitSheet from "@/components/LimitSheet";
+import CategorySheet from "@/components/CategorySheet";
 import Sheet from "@/components/Sheet";
 import TxList from "@/components/TxList";
 import { SegBars } from "@/components/Charts";
@@ -124,6 +125,7 @@ function TransacoesInner() {
   const [fAccount, setFAccount] = useState("");
   const [subTab, setSubTab] = useState<"recorrentes" | "parcelamentos">("recorrentes");
   const [selected, setSelected] = useState<DbTransaction | null>(null);
+  const [editCat, setEditCat] = useState<DbTransaction | null>(null);
 
   // Carga geral (independente do mês selecionado)
   useEffect(() => {
@@ -615,9 +617,18 @@ function TransacoesInner() {
               <div className="text-sm text-ink-dim mt-1">
                 {new Date(selected.date).toLocaleDateString("pt-BR", { timeZone: "UTC" })}
               </div>
-              <div className="mt-3 flex justify-center">
+              <button
+                onClick={() => setEditCat(selected)}
+                className="mt-3 flex items-center justify-center gap-2 mx-auto"
+              >
                 <Chip category={selected.category} />
-              </div>
+                <span className="text-xs font-semibold text-accent">alterar</span>
+              </button>
+              {selected.categoryOverride && (
+                <div className="text-xs text-ink-faint mt-1.5">
+                  Categoria corrigida por você
+                </div>
+              )}
             </div>
             {selected.accountId === "manual-wallet" && (
               <button
@@ -634,6 +645,12 @@ function TransacoesInner() {
           </div>
         )}
       </Sheet>
+
+      <CategorySheet
+        transaction={editCat}
+        onClose={() => setEditCat(null)}
+        onSaved={(t) => setSelected(t)}
+      />
     </div>
   );
 }

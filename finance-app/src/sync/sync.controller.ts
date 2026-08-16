@@ -20,6 +20,7 @@ import {
   isYieldAccount,
   yieldAccountAsInvestment,
 } from '../shared/yield-accounts';
+import { resolvedCategory } from '../shared/category';
 
 /** Teto de itens por pagina em GET /pluggy/db/transactions. */
 const MAX_PAGE_SIZE = 1000;
@@ -209,14 +210,33 @@ export class SyncController {
     @Query('take') take?: string,
     @Query('skip') skip?: string,
   ) {
+    // Filtrar por categoria tem que enxergar a correcao do usuario: a
+    // transacao corrigida sai da categoria antiga e entra na nova, senao a
+    // lista contradiz o total que a analise mostra.
+    const insensitive = (value: string) => ({
+      equals: value,
+      mode: 'insensitive' as const,
+    });
     const where = {
       accountId: accountId || undefined,
-      category: category ? { equals: category, mode: 'insensitive' as const } : undefined,
       description: search ? { contains: search, mode: 'insensitive' as const } : undefined,
       date: {
         gte: from ? new Date(from) : undefined,
         lte: to ? new Date(to) : undefined,
       },
+      ...(category
+        ? {
+            OR: [
+              { categoryOverride: insensitive(category) },
+              {
+                AND: [
+                  { categoryOverride: null },
+                  { category: insensitive(category) },
+                ],
+              },
+            ],
+          }
+        : {}),
     };
     const limit = Math.min(Number(take) || 200, MAX_PAGE_SIZE);
     const offset = Number(skip) || 0;
@@ -239,12 +259,16 @@ export class SyncController {
         skip: offset,
       }),
     ]);
+    const resolved = transactions.map((t) => ({
+      ...t,
+      category: resolvedCategory(t),
+    }));
     const hasMore = offset + transactions.length < total;
     if (hasMore) {
       this.logger.warn(
         `Consulta de transacoes truncada: ${transactions.length} de ${total} (take=${limit}, skip=${offset}).`,
       );
     }
-    return { total, transactions, hasMore };
+    return { total, transactions: resolved, hasMore };
   }
 }

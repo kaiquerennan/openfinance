@@ -8,15 +8,17 @@ import {
   api,
   brl0,
   Budget,
+  CategoryRule,
   currentMonth,
   monthLabel,
 } from "@/lib/api";
 import { catColor, catMeta } from "@/lib/categories";
-import { useDataVersion } from "@/lib/bus";
+import { bumpData, useDataVersion } from "@/lib/bus";
 import BlueHeader from "@/components/Header";
 import LimitSheet from "@/components/LimitSheet";
 import LifestyleCard from "@/components/LifestyleCard";
-import { Amount, ErrorCard, LoadingCard, Money, MonthNav } from "@/components/ui";
+import { Amount, Card, CardHeader, ErrorCard, LoadingCard, Money, MonthNav } from "@/components/ui";
+import { IconTrash } from "@/components/icons";
 
 export default function CategoriasPage() {
   const version = useDataVersion();
@@ -26,6 +28,7 @@ export default function CategoriasPage() {
   const [error, setError] = useState<string | null>(null);
   const [limitCat, setLimitCat] = useState<string | null>(null);
   const [report, setReport] = useState<AnalyticsReport | null>(null);
+  const [rules, setRules] = useState<CategoryRule[]>([]);
 
   useEffect(() => {
     api
@@ -33,6 +36,7 @@ export default function CategoriasPage() {
       .then((ms) => setMonths(ms.includes(currentMonth()) ? ms : [...ms, currentMonth()]))
       .catch((e) => setError(e.message));
     api.budgets().then(setBudgets).catch((e) => setError(e.message));
+    api.categoryRules().then(setRules).catch(() => {});
   }, [version]);
 
   useEffect(() => {
@@ -141,6 +145,43 @@ export default function CategoriasPage() {
           </div>
         )}
       </div>
+
+      {rules.length > 0 && (
+        <div className="px-4 mt-6">
+          <Card className="divide-y divide-edge">
+            <CardHeader title="Regras de categoria" />
+            <p className="text-xs text-ink-dim pb-3">
+              Toda transação cuja descrição contém o texto abaixo entra na categoria
+              escolhida — inclusive as que ainda vão chegar.
+            </p>
+            {rules.map((r) => {
+              const meta = catMeta(r.category);
+              return (
+                <div key={r.id} className="flex items-center gap-3 py-3">
+                  <span className="text-lg">{meta.icon}</span>
+                  <span className="flex-1 min-w-0">
+                    <span className="block text-[15px] font-medium text-ink truncate">
+                      {r.pattern}
+                    </span>
+                    <span className="block text-xs text-ink-dim">{meta.label}</span>
+                  </span>
+                  <button
+                    aria-label={`Remover regra ${r.pattern}`}
+                    onClick={async () => {
+                      await api.deleteCategoryRule(r.id);
+                      setRules((list) => list.filter((x) => x.id !== r.id));
+                      bumpData();
+                    }}
+                    className="h-9 w-9 rounded-full bg-soft grid place-items-center text-ink-dim shrink-0"
+                  >
+                    <IconTrash size={15} />
+                  </button>
+                </div>
+              );
+            })}
+          </Card>
+        </div>
+      )}
 
       <LimitSheet
         open={limitCat !== null}

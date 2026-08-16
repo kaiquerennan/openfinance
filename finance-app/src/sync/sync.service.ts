@@ -3,6 +3,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { PluggyService, PluggyAccount } from '../pluggy/pluggy.service';
+import { CategoriesService } from '../categories/categories.service';
 import {
   PluggyAccountFull,
   PluggyInvestment,
@@ -55,6 +56,7 @@ export class SyncService {
   constructor(
     private readonly pluggy: PluggyService,
     private readonly prisma: PrismaService,
+    private readonly categories: CategoriesService,
   ) {}
 
   /** Sincroniza um Item: dados do item, contas e todas as transacoes. */
@@ -110,6 +112,14 @@ export class SyncService {
         `Sem investimentos para o item ${itemId}: ${(err as Error).message}`,
       );
     }
+
+    // Transacao nova chega com a categoria da instituicao; sem reaplicar as
+    // regras aqui, o mercado que o usuario ja corrigiu voltaria errado todo mes.
+    await this.categories.applyRules().catch((err) => {
+      this.logger.warn(
+        `Falha ao reaplicar regras de categoria: ${(err as Error).message}`,
+      );
+    });
 
     this.logger.log(
       `Sync do item ${itemId} concluido: ${accounts.length} contas, ${totalTransactions} transacoes, ${investmentsSynced} investimentos.`,

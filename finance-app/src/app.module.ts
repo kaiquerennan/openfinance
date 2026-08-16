@@ -13,6 +13,7 @@ import { AuthModule } from './auth/auth.module';
 import { AssistantModule } from './assistant/assistant.module';
 import { AlertsModule } from './alerts/alerts.module';
 import { InstallmentsModule } from './installments/installments.module';
+import { CategoriesModule } from './categories/categories.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { InstallmentsModule } from './installments/installments.module';
     SyncModule,
     ConnectModule,
     AnalyticsModule,
+    CategoriesModule,
     InstallmentsModule,
     PlanningModule,
     AssistantModule,

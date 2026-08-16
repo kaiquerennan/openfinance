@@ -232,6 +232,8 @@ export interface DbTransaction {
   amount: string; // Decimal serializado
   type: string | null; // DEBIT | CREDIT
   category: string | null;
+  /** Categoria corrigida à mão ou por regra; já vem aplicada em `category`. */
+  categoryOverride?: string | null;
   status: string | null;
   account?: {
     name: string | null;
@@ -363,6 +365,14 @@ export interface InstallmentsOverview {
   freeFrom: string | null;
 }
 
+/** Regra que corrige a categoria de tudo que casa com `pattern`. */
+export interface CategoryRule {
+  id: string;
+  pattern: string;
+  category: string;
+  createdAt: string;
+}
+
 export interface ManualTxInput {
   description: string;
   amount: number;
@@ -444,6 +454,18 @@ export const api = {
 
   installments: (months = 6) =>
     get<InstallmentsOverview>(`/installments?months=${months}`),
+
+  categoryRules: () => get<CategoryRule[]>('/categories/rules'),
+  createCategoryRule: (pattern: string, category: string) =>
+    post<CategoryRule>('/categories/rules', { pattern, category }),
+  deleteCategoryRule: (id: string) =>
+    send<{ deleted: string; restored: number }>('DELETE', `/categories/rules/${id}`),
+  /** `category` nulo desfaz a correção; `applyToAll` cria uma regra. */
+  setTxCategory: (id: string, category: string | null, applyToAll = false) =>
+    send<DbTransaction>('PATCH', `/categories/transactions/${id}`, {
+      category,
+      applyToAll,
+    }),
 
   budgets: () => get<Budget[]>('/budgets'),
   setBudget: (category: string, amount: number) =>

@@ -1,6 +1,7 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { groupOf } from './category-groups';
+import { canonicalCategory, resolvedCategory } from '../shared/category';
 import {
   Balances,
   computeAnalytics,
@@ -163,13 +164,14 @@ export class AnalyticsService {
           : r.type === 'CREDIT'
             ? Math.abs(raw)
             : raw;
-      const { group, uncertain } = groupOf(r.category, amount);
+      const category = canonicalCategory(resolvedCategory(r));
+      const { group, uncertain } = groupOf(category, amount);
       return {
         id: r.id,
         accountId: r.accountId,
         date: r.date,
         amount,
-        category: r.category ?? '(sem categoria)',
+        category: category ?? '(sem categoria)',
         description: r.description ?? r.descriptionRaw ?? '',
         type: r.type,
         group,
