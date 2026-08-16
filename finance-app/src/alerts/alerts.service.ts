@@ -4,6 +4,7 @@ import axios from 'axios';
 import { PrismaService } from '../prisma/prisma.service';
 import { AnalyticsService } from '../analytics/analytics.service';
 import { InstallmentsService } from '../installments/installments.service';
+import { CardsService } from '../cards/cards.service';
 import { Anomaly, findAnomalies } from './anomaly';
 import { dayOfMonth, monthKey } from '../analytics/timezone';
 
@@ -24,6 +25,16 @@ const MIN_RAISE_TO_ALERT = 5;
  * que parcelar de novo deixa de ser uma escolha confortavel.
  */
 const INSTALLMENT_ALERT_SHARE = 30;
+
+/** Aumento minimo (%) de uma fatura sobre a anterior para virar aviso. */
+const BILL_JUMP_PCT = 25;
+
+/**
+ * So a fatura que fechou ha pouco vira aviso. Sem esta janela, a primeira
+ * execucao depois de sincronizar o historico dispararia um aviso para cada
+ * fatura antiga de uma vez.
+ */
+const BILL_RECENT_DAYS = 45;
 
 interface Alert {
   /** Identidade do alerta. Muda quando o conteudo muda de verdade. */
@@ -54,6 +65,7 @@ export class AlertsService {
     private readonly prisma: PrismaService,
     private readonly analytics: AnalyticsService,
     private readonly installments: InstallmentsService,
+    private readonly cards: CardsService,
     private readonly config: ConfigService,
   ) {}
 
@@ -96,12 +108,13 @@ export class AlertsService {
 
   private async collect(): Promise<Alert[]> {
     const month = monthKey(new Date());
-    const [report, budgets, accounts, parcelas, extrato] = await Promise.all([
+    const [report, budgets, accounts, parcelas, extrato, cartoes] = await Promise.all([
       this.analytics.report(month).catch(() => null),
       this.prisma.budget.findMany(),
       this.prisma.account.findMany({ where: { type: 'CREDIT' } }),
       this.installments.overview(2).catch(() => null),
       this.analytics.transactions(6).catch(() => []),
+      this.cards.bills().catch(() => []),
     ]);
     if (!report) return [];
 
@@ -187,6 +200,33 @@ export class AlertsService {
           ? `"${a.description}" veio ${brl(a.amount)} — ${a.times}x o de sempre nesse lugar (${brl(a.typical)}).`
           : `Gasto fora do padrão: ${brl(a.amount)} em "${a.description}". Suas compras raramente passam de ${brl(a.typical)}.`;
       out.push({ key: `anomaly:${a.transactionId}`, text: texto, once: true });
+    }
+
+    // 7) A fatura que acabou de fechar: juros e salto sobre a anterior.
+    // Depois de fechada nao da mais pra mudar o valor, mas da pra evitar
+    // pagar o minimo e repetir o mesmo mes.
+    for (const cartao of cartoes) {
+      const fatura = cartao.bills[0];
+      if (!fatura) continue;
+
+      const fechou = new Date(fatura.closingDate ?? fatura.dueDate);
+      const dias = (Date.now() - fechou.getTime()) / 86_400_000;
+      if (dias < 0 || dias > BILL_RECENT_DAYS) continue;
+
+      if (fatura.charges > 0) {
+        out.push({
+          key: `bill-charges:${fatura.id}`,
+          once: true,
+          text: `A fatura do ${cartao.accountName} veio com ${brl(fatura.charges)} de juros e encargos.`,
+        });
+      }
+      if (fatura.changePct != null && fatura.changePct >= BILL_JUMP_PCT) {
+        out.push({
+          key: `bill-jump:${fatura.id}`,
+          once: true,
+          text: `A fatura do ${cartao.accountName} fechou em ${brl(fatura.total)} — ${fatura.changePct}% acima da anterior.`,
+        });
+      }
     }
 
     return out;

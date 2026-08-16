@@ -6,6 +6,7 @@ import { PluggyService, PluggyAccount } from '../pluggy/pluggy.service';
 import { CategoriesService } from '../categories/categories.service';
 import {
   PluggyAccountFull,
+  PluggyBill,
   PluggyInvestment,
   PluggyItem,
   PluggyTransaction,
@@ -31,6 +32,7 @@ function installmentOf(t: PluggyTransaction) {
     totalInstallments: total,
     installmentTotalAmount:
       meta?.totalAmount != null ? new Prisma.Decimal(meta.totalAmount) : null,
+    billId: meta?.billId ?? null,
   };
 }
 
@@ -84,6 +86,8 @@ export class SyncService {
         to,
       );
       await this.upsertTransactions(account.id, txs);
+
+      if (account.type === 'CREDIT') await this.syncBills(account.id);
 
       accountResults.push({
         accountId: account.id,
@@ -220,6 +224,53 @@ export class SyncService {
       create: { id: acc.id, ...data },
       update: data,
     });
+  }
+
+  /**
+   * Faturas do cartao. Nem toda instituicao expoe /bills; a ausencia nao pode
+   * derrubar o sync da conta, que ja trouxe saldo e transacoes.
+   */
+  private async syncBills(accountId: string): Promise<void> {
+    try {
+      const { results } = await this.pluggy.getBills(accountId);
+      await this.upsertBills(accountId, results ?? []);
+      this.logger.log(`Conta ${accountId}: ${results?.length ?? 0} fatura(s).`);
+    } catch (err) {
+      this.logger.warn(
+        `Sem faturas para a conta ${accountId}: ${(err as Error).message}`,
+      );
+    }
+  }
+
+  private async upsertBills(
+    accountId: string,
+    bills: PluggyBill[],
+  ): Promise<void> {
+    const sum = (values: (number | undefined)[]) =>
+      values.reduce<number>((total, v) => total + (v ?? 0), 0);
+
+    for (const bill of bills) {
+      const charges = sum((bill.financeCharges ?? []).map((c) => c.amount));
+      const payments = sum((bill.payments ?? []).map((p) => p.amount));
+      const data = {
+        accountId,
+        dueDate: new Date(bill.dueDate),
+        closingDate: bill.billClosingDate ? new Date(bill.billClosingDate) : null,
+        totalAmount: new Prisma.Decimal(bill.totalAmount ?? 0),
+        minimumPayment:
+          bill.minimumPaymentAmount != null
+            ? new Prisma.Decimal(bill.minimumPaymentAmount)
+            : null,
+        currencyCode: bill.totalAmountCurrencyCode ?? null,
+        financeCharges: new Prisma.Decimal(charges),
+        paymentsAmount: new Prisma.Decimal(payments),
+      };
+      await this.prisma.bill.upsert({
+        where: { id: bill.id },
+        create: { id: bill.id, ...data },
+        update: data,
+      });
+    }
   }
 
   private async upsertInvestments(

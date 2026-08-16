@@ -13,6 +13,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import axios, { AxiosError, AxiosInstance, AxiosRequestConfig } from 'axios';
 import {
+  PluggyBill,
   PluggyInvestment,
   PluggyItem,
   PluggyTransaction,
@@ -206,6 +207,21 @@ export class PluggyService implements OnModuleInit {
       method: 'GET',
       url: '/investments',
       params: { itemId },
+    });
+  }
+
+  /**
+   * Lista as faturas de um cartao de credito.
+   *
+   * E a unica fonte do valor fechado de cada ciclo: somar transacao por data
+   * chuta o dia do fechamento e ignora encargo e estorno lancados pela
+   * propria instituicao.
+   */
+  async getBills(accountId: string): Promise<{ results: PluggyBill[] }> {
+    return this.request({
+      method: 'GET',
+      url: '/bills',
+      params: { accountId },
     });
   }
 

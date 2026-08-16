@@ -3,9 +3,10 @@
 // Cartões: contas de crédito com fatura atual e últimas compras.
 
 import { useEffect, useState } from "react";
-import { api, brl0, daysUntil, DbAccount, DbTransaction } from "@/lib/api";
+import { api, brl0, CardBills, daysUntil, DbAccount, DbTransaction } from "@/lib/api";
 import { useDataVersion } from "@/lib/bus";
 import BlueHeader from "@/components/Header";
+import BillHistory from "@/components/BillHistory";
 import TxList from "@/components/TxList";
 import { Amount, Card, EmptyState, ErrorCard, LoadingCard, Money } from "@/components/ui";
 
@@ -79,6 +80,7 @@ export default function CartoesPage() {
   const version = useDataVersion();
   const [accounts, setAccounts] = useState<DbAccount[] | null>(null);
   const [txs, setTxs] = useState<Record<string, DbTransaction[]>>({});
+  const [bills, setBills] = useState<Record<string, CardBills>>({});
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -90,6 +92,10 @@ export default function CartoesPage() {
           accs.map((a) => api.transactions({ accountId: a.id, take: 8 })),
         );
         setTxs(Object.fromEntries(accs.map((a, i) => [a.id, pages[i].transactions])));
+        // Histórico de faturas: nem toda instituição expõe. Sem ele a tela
+        // continua mostrando saldo, limite e compras.
+        const cards = await api.cardBills().catch(() => []);
+        setBills(Object.fromEntries(cards.map((c) => [c.accountId, c])));
       } catch (e) {
         setError((e as Error).message);
       }
@@ -147,6 +153,8 @@ export default function CartoesPage() {
                 </div>
 
                 <CardStatus account={a} />
+
+                {bills[a.id] && <BillHistory card={bills[a.id]} />}
 
                 <div className="mt-4">
                   <div className="text-sm font-semibold text-ink-dim mb-3">

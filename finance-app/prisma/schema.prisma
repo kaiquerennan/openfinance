@@ -49,10 +49,38 @@ model Account {
   cardLevel            String?
 
   transactions Transaction[]
+  bills        Bill[]
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 
   @@index([itemId])
+}
+
+/// Uma fatura fechada de cartao de credito (GET /bills da Pluggy).
+///
+/// O saldo da conta so conta a fatura atual. Sem o historico de faturas nao da
+/// pra responder "por que a fatura deste mes veio maior?" nem enxergar juros e
+/// encargos, que e onde o rotativo aparece.
+model Bill {
+  id             String   @id // id da Bill na Pluggy
+  accountId      String
+  account        Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  dueDate        DateTime
+  closingDate    DateTime?
+  totalAmount    Decimal  @db.Decimal(18, 2)
+  minimumPayment Decimal? @db.Decimal(18, 2)
+  currencyCode   String?
+  /// Soma de juros, IOF, multa e afins cobrados na fatura.
+  financeCharges Decimal? @db.Decimal(18, 2)
+  /// Pagamentos lancados durante este ciclo. Atencao: quitam a fatura
+  /// ANTERIOR, nao esta — e assim que da pra saber se alguem pagou tudo,
+  /// pagou parte (rotativo) ou nao pagou.
+  paymentsAmount Decimal? @db.Decimal(18, 2)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([accountId, dueDate])
 }
 
 /// Uma posicao de investimento (CDB, fundo, acao, etc) pertencente a um Item.
@@ -172,6 +200,8 @@ model Transaction {
   installmentNumber      Int?
   totalInstallments      Int?
   installmentTotalAmount Decimal? @db.Decimal(18, 2)
+  /// Fatura em que a compra foi cobrada (id da Bill na Pluggy).
+  billId                 String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

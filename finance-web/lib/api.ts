@@ -365,6 +365,43 @@ export interface InstallmentsOverview {
   freeFrom: string | null;
 }
 
+export type BillStatus = 'a vencer' | 'paga' | 'parcial' | 'em aberto';
+
+/** Uma fatura fechada do cartão. */
+export interface Bill {
+  id: string;
+  dueDate: string; // YYYY-MM-DD
+  closingDate: string | null;
+  total: number;
+  minimumPayment: number | null;
+  /** Juros, IOF, multa e afins cobrados nesta fatura. */
+  charges: number;
+  status: BillStatus;
+  /** Variação % sobre a fatura anterior. */
+  changePct: number | null;
+}
+
+/** O que já corre para a próxima fatura, ainda sem fechar. */
+export interface OpenBill {
+  since: string;
+  total: number;
+  count: number;
+  closesOn: string | null;
+  dueDate: string | null;
+}
+
+export interface CardBills {
+  accountId: string;
+  accountName: string;
+  currentBalance: number;
+  creditLimit: number | null;
+  availableCreditLimit: number | null;
+  bills: Bill[];
+  open: OpenBill | null;
+  average: number;
+  chargesRecent: number;
+}
+
 /** Gasto recente muito acima do padrão do próprio histórico. */
 export interface Anomaly {
   transactionId: string;
@@ -468,6 +505,7 @@ export const api = {
     get<InstallmentsOverview>(`/installments?months=${months}`),
 
   anomalies: () => get<Anomaly[]>('/alerts/anomalies'),
+  cardBills: () => get<CardBills[]>('/cards/bills'),
 
   categoryRules: () => get<CategoryRule[]>('/categories/rules'),
   createCategoryRule: (pattern: string, category: string) =>

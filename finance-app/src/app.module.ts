@@ -14,6 +14,7 @@ import { AssistantModule } from './assistant/assistant.module';
 import { AlertsModule } from './alerts/alerts.module';
 import { InstallmentsModule } from './installments/installments.module';
 import { CategoriesModule } from './categories/categories.module';
+import { CardsModule } from './cards/cards.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { CategoriesModule } from './categories/categories.module';
     ConnectModule,
     AnalyticsModule,
     CategoriesModule,
+    CardsModule,
     InstallmentsModule,
     PlanningModule,
     AssistantModule,

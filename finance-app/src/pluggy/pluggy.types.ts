@@ -84,6 +84,38 @@ export interface PluggyTransaction {
   creditCardMetadata?: PluggyCreditCardMetadata | null;
 }
 
+/** Encargo cobrado numa fatura (juros, IOF, multa, saldo em atraso). */
+export interface PluggyFinanceCharge {
+  id?: string;
+  type?: string;
+  amount?: number;
+  currencyCode?: string;
+  additionalInfo?: string;
+}
+
+/** Pagamento lancado sobre uma fatura. */
+export interface PluggyBillPayment {
+  id?: string;
+  valueType?: string;
+  paymentDate?: string;
+  paymentMode?: string;
+  amount?: number;
+  currencyCode?: string;
+}
+
+/** Fatura de cartao de credito (GET /bills). */
+export interface PluggyBill {
+  id: string;
+  dueDate: string;
+  billClosingDate?: string;
+  totalAmount?: number;
+  totalAmountCurrencyCode?: string;
+  minimumPaymentAmount?: number;
+  allowsInstallments?: boolean;
+  financeCharges?: PluggyFinanceCharge[];
+  payments?: PluggyBillPayment[];
+}
+
 /** Envelope paginado (offset) — usado por endpoints legados como /accounts. */
 export interface PluggyPage<T> {
   results: T[];

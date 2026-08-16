@@ -294,6 +294,44 @@ export const TOOLS: Tool[] = [
   },
 
   {
+    name: 'faturas',
+    title: 'Faturas de cartao de credito',
+    description:
+      'Faturas fechadas de cada cartao (valor, vencimento, variacao sobre a anterior, juros e encargos, ' +
+      'e se foi paga, paga so em parte ou nao paga) mais o quanto ja corre para a proxima, que ainda nao fechou. ' +
+      'Use para responder por que a fatura veio maior, quanto esta indo em juros, ou quanto vai vencer no proximo mes. ' +
+      'Status "parcial" significa rotativo: parte da fatura virou divida.',
+    inputSchema: { type: 'object', properties: {}, additionalProperties: false },
+    async run(api) {
+      const cards = await api.get<any[]>('/cards/bills');
+      return cards.map((c) => ({
+        cartao: c.accountName,
+        faturaAtualSegundoOBanco: c.currentBalance,
+        limite: c.creditLimit,
+        limiteDisponivel: c.availableCreditLimit,
+        mediaDasUltimasFaturas: c.average,
+        jurosEEncargosRecentes: c.chargesRecent,
+        proximaFaturaParcial: c.open && {
+          desde: c.open.since,
+          valorAteAgora: c.open.total,
+          compras: c.open.count,
+          fechaEm: c.open.closesOn,
+          venceEm: c.open.dueDate,
+        },
+        faturas: (c.bills ?? []).map((b: any) => ({
+          vencimento: b.dueDate,
+          fechamento: b.closingDate,
+          valor: b.total,
+          pagamentoMinimo: b.minimumPayment,
+          jurosEEncargos: b.charges,
+          situacao: b.status,
+          variacaoSobreAAnteriorPct: b.changePct,
+        })),
+      }));
+    },
+  },
+
+  {
     name: 'parcelas',
     title: 'Compras parceladas em aberto',
     description:
