@@ -14,10 +14,30 @@ import {
   signedAmount,
 } from "@/lib/api";
 import { useDataVersion } from "@/lib/bus";
-import BlueHeader from "@/components/Header";
+import PageHeader from "@/components/Header";
 import TxList from "@/components/TxList";
 import { ValueBars } from "@/components/Charts";
-import { Amount, Card, EmptyState, ErrorCard, LoadingCard } from "@/components/ui";
+import {
+  Amount,
+  Card,
+  CardHeader,
+  EmptyState,
+  ErrorCard,
+  ListRow,
+  LoadingCard,
+  Money,
+  PageHero,
+} from "@/components/ui";
+
+/** Tipos de posição como o Open Finance devolve → como se fala. */
+const POSITION_TYPE: Record<string, string> = {
+  FIXED_INCOME: "Renda fixa",
+  MUTUAL_FUND: "Fundo de investimento",
+  EQUITY: "Ações",
+  ETF: "ETF",
+  COE: "COE",
+  SECURITY: "Previdência",
+};
 
 export default function InvestimentosPage() {
   const version = useDataVersion();
@@ -74,62 +94,65 @@ export default function InvestimentosPage() {
 
   return (
     <div>
-      <BlueHeader title="Investimentos">
-        <div className="mt-4">
-          <div className="text-white/70 text-[15px]">
-            {hasRealBalance ? "Saldo atual investido" : "Aportes em 12 meses"}
-          </div>
-          <div className="text-5xl font-semibold mt-1">
-            <Amount>{brl0(hasRealBalance ? investmentsTotal : totalInvested)}</Amount>
-          </div>
-          <div className="text-white/50 mt-2 text-[15px]">
-            {hasRealBalance
-              ? `${investments!.length} posições · saldo reportado pela instituição`
-              : `${all.length} movimentações`}
-          </div>
-        </div>
-      </BlueHeader>
+      <PageHeader title="Investimentos" back>
+        <PageHero
+          label={hasRealBalance ? "Saldo investido" : "Aportes em 12 meses"}
+          value={<Amount>{brl0(hasRealBalance ? investmentsTotal : totalInvested)}</Amount>}
+          hint={
+            hasRealBalance
+              ? `${investments!.length} ${
+                  investments!.length === 1 ? "posição" : "posições"
+                } · saldo informado pela instituição`
+              : byMonth
+                ? `${all.length} movimentações`
+                : undefined
+          }
+        />
+      </PageHeader>
 
       <div className="px-4 mt-5 space-y-4">
         {error && <ErrorCard message={error} />}
         {hasRealBalance && (
-          <Card className="rise">
-            <div className="text-sm font-semibold text-ink-dim mb-3">
-              Posições
-            </div>
-            <div className="divide-y divide-black/5">
+          <Card className="rise lg:max-w-3xl">
+            <CardHeader title="Posições" />
+            <div className="divide-y divide-edge">
               {investments!.map((inv) => (
-                <div key={inv.id} className="flex items-center justify-between py-2.5">
-                  <div className="min-w-0 pr-3">
-                    <div className="text-[15px] truncate">{inv.name ?? inv.type ?? "Posição"}</div>
-                    <div className="text-[13px] text-ink-dim">
-                      {inv.subtype === "CONTA_REMUNERADA"
-                        ? "Conta remunerada"
-                        : inv.type ?? "-"}
-                    </div>
-                  </div>
-                  <div className="text-[15px] font-medium shrink-0">
-                    <Amount>{brl0(Number(inv.balance ?? 0))}</Amount>
-                  </div>
-                </div>
+                <ListRow
+                  key={inv.id}
+                  icon="📈"
+                  title={inv.name ?? inv.type ?? "Posição"}
+                  subtitle={
+                    inv.subtype === "CONTA_REMUNERADA"
+                      ? "Conta remunerada"
+                      : inv.type
+                        ? POSITION_TYPE[inv.type] ?? inv.type
+                        : undefined
+                  }
+                  right={
+                    <Money value={Number(inv.balance ?? 0)} cents={false} className="text-[16px]" />
+                  }
+                />
               ))}
             </div>
           </Card>
         )}
         {!byMonth ? (
-          <LoadingCard />
+          !error && <LoadingCard />
         ) : all.length === 0 ? (
-          <EmptyState text="Nenhuma movimentação de investimento encontrada." />
+          !hasRealBalance && (
+            <EmptyState icon="📈" text="Nenhuma movimentação de investimento encontrada." />
+          )
         ) : (
           <div className="rise space-y-4 lg:space-y-0 lg:grid lg:grid-cols-3 lg:gap-6 lg:items-start">
-            <div className="lg:col-span-2">
-              <ValueBars data={monthly} height={230} positiveColor="#0ea5e9" />
-            </div>
+            <Card className="lg:col-span-2">
+              <CardHeader title="Aportes por mês" />
+              <ValueBars data={monthly} height={220} positiveColor="#0ea5e9" />
+            </Card>
             <Card className="lg:col-span-1">
-              <div className="text-sm font-semibold text-ink-dim mb-3">
-                Movimentações
+              <CardHeader title="Movimentações" />
+              <div className="mt-2">
+                <TxList transactions={all.slice(0, 30)} />
               </div>
-              <TxList transactions={all.slice(0, 30)} />
             </Card>
           </div>
         )}

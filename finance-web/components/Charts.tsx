@@ -1,7 +1,7 @@
 "use client";
 
-// Gráficos do design mobile: barras-pílula segmentadas, ritmo de gasto vs
-// limite (hero da home) e barras de metas.
+// Gráficos do app: barras-pílula segmentadas, ritmo de gasto vs limite (hero
+// da home) e projeção de saldo.
 
 import React from "react";
 import {
@@ -60,7 +60,7 @@ function MonthTick({
 }) {
   const lines = String(payload?.value ?? "").split("\n");
   return (
-    <text x={x} y={y} fill={AXIS} fontSize={12} textAnchor="middle">
+    <text x={x} y={y} fill={AXIS} fontSize={11} textAnchor="middle">
       {lines.map((l, i) => (
         <tspan key={i} x={x} dy={i === 0 ? 14 : 14}>
           {l}
@@ -196,60 +196,6 @@ export function ValueBars({
             />
           ))}
         </Bar>
-      </BarChart>
-    </ResponsiveContainer>
-  );
-}
-
-/** Barras largas e bem arredondadas das Metas (planejado × mês atual). */
-function GoalShape(props: unknown) {
-  const { x, y, width, height: h, payload } = props as {
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-    payload: { active: boolean };
-  };
-  if (!h || h <= 0) return <g />;
-  return (
-    <rect
-      x={x}
-      y={y}
-      width={width}
-      height={h}
-      rx={Math.min(16, width / 2.6)}
-      fill={payload.active ? "#f0a818" : "#f3e3b3"}
-    />
-  );
-}
-
-export function GoalBars({
-  data,
-  height = 300,
-}: {
-  data: { name: string; value: number; active: boolean }[];
-  height?: number;
-}) {
-  return (
-    <ResponsiveContainer width="100%" height={height}>
-      <BarChart data={data} barCategoryGap="14%" margin={{ top: 8, right: 8, left: 0, bottom: 4 }}>
-        <XAxis
-          dataKey="name"
-          tick={{ fill: "#8a919d", fontSize: 13 }}
-          axisLine={false}
-          tickLine={false}
-          interval={0}
-        />
-        <YAxis
-          tickFormatter={(v: number) => `R$ ${compactBRL(v)}`}
-          tick={{ fill: AXIS, fontSize: 12 }}
-          axisLine={false}
-          tickLine={false}
-          width={52}
-          tickCount={4}
-        />
-        <Tooltip content={<TipBox />} cursor={{ fill: "rgba(120,130,150,0.08)" }} />
-        <Bar dataKey="value" name="Aportes" shape={<GoalShape />} isAnimationActive={false} />
       </BarChart>
     </ResponsiveContainer>
   );

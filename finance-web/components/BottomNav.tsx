@@ -1,51 +1,46 @@
 "use client";
 
-// Nav inferior flutuante: pill escura com Visão geral, Categorias,
-// Transações e um botão de gráfico que abre o menu completo (todas as
-// outras páginas) + um botão separado que abre o chat do Visor (IA).
+// Barra inferior: os três destinos do dia a dia + "Mais", todos com rótulo
+// (ícone sozinho obriga a lembrar o que cada um é), e o botão do Visor ao lado.
+// "Mais" abre o resto do app agrupado pelo que se quer resolver.
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
+import { isActive, PRIMARY_NAV, SECONDARY_GROUPS, SECONDARY_NAV } from "@/lib/nav";
+import { recordVisit } from "@/lib/usage";
 import InsightsSheet from "@/components/InsightsSheet";
+import Sheet from "@/components/Sheet";
 import SyncSheet from "@/components/SyncSheet";
-import { MENU } from "@/components/Header";
-import {
-  IconArrows,
-  IconBars,
-  IconChat,
-  IconHome,
-  IconPie,
-  IconSliders,
-  IconSparkle,
-  IconUpDown,
-  IconX,
-} from "@/components/icons";
+import { IconGrid, IconLogout, IconSparkle, IconSync } from "@/components/icons";
 
-const NAV_ROUTES = ["/", "/categorias", "/transacoes"];
-
-function NavItem({
-  href,
+function Tab({
   active,
-  children,
   label,
+  children,
 }: {
-  href: string;
   active: boolean;
-  children: React.ReactNode;
   label: string;
+  children: React.ReactNode;
 }) {
   return (
-    <Link
-      href={href}
-      aria-label={label}
-      className={`h-11 w-11 rounded-full grid place-items-center transition ${
-        active ? "bg-accent text-white" : "text-ink-faint"
+    <span
+      className={`flex flex-col items-center gap-0.5 transition ${
+        active ? "text-accent" : "text-ink-faint"
       }`}
     >
-      {children}
-    </Link>
+      <span
+        className={`h-8 w-14 rounded-full grid place-items-center transition ${
+          active ? "bg-accent/15" : ""
+        }`}
+      >
+        {children}
+      </span>
+      <span className={`text-[10.5px] leading-none ${active ? "font-bold" : "font-semibold"}`}>
+        {label}
+      </span>
+    </span>
   );
 }
 
@@ -55,125 +50,123 @@ export default function BottomNav() {
   const [syncOpen, setSyncOpen] = useState(false);
   const [aiOpen, setAiOpen] = useState(false);
 
-  if (pathname === "/login") return null;
+  const inSecondary = SECONDARY_NAV.some((i) => isActive(i.href, pathname));
 
-  const inMainNav = NAV_ROUTES.includes(pathname);
+  // Alimenta os atalhos da home com as telas secundárias mais abertas.
+  useEffect(() => {
+    const item = SECONDARY_NAV.find((i) => isActive(i.href, pathname));
+    if (item) recordVisit(item.href);
+  }, [pathname]);
+
+  if (pathname === "/login") return null;
 
   return (
     <>
-      <nav className="fixed bottom-0 inset-x-0 z-40 pointer-events-none lg:hidden">
-        <div className="mx-auto w-full max-w-md px-4 pb-4 pt-2 flex items-center gap-3">
-          <div className="pointer-events-auto flex-1 flex items-center justify-between bg-card/95 backdrop-blur-xl border border-edge rounded-full px-2.5 py-2 shadow-[0_12px_40px_-12px_rgba(0,0,0,0.6)]">
-            <NavItem href="/" active={pathname === "/"} label="Visão geral">
-              <IconHome size={21} />
-            </NavItem>
-            <NavItem
-              href="/categorias"
-              active={pathname.startsWith("/categorias")}
-              label="Categorias"
-            >
-              <IconPie size={20} />
-            </NavItem>
-            <NavItem
-              href="/transacoes"
-              active={pathname.startsWith("/transacoes")}
-              label="Transações"
-            >
-              <IconArrows size={20} />
-            </NavItem>
+      <nav
+        aria-label="Navegação principal"
+        className="fixed bottom-0 inset-x-0 z-40 pointer-events-none lg:hidden"
+      >
+        <div className="mx-auto w-full max-w-md px-4 pb-4 pt-2 flex items-center gap-2.5">
+          <div className="pointer-events-auto flex-1 grid grid-cols-4 bg-card/95 backdrop-blur-xl border border-edge rounded-[1.75rem] px-1.5 py-2 shadow-[0_12px_40px_-12px_rgba(0,0,0,0.6)]">
+            {PRIMARY_NAV.map((item) => {
+              const active = isActive(item.href, pathname);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  aria-current={active ? "page" : undefined}
+                  className="py-0.5"
+                >
+                  <Tab active={active} label={item.label}>
+                    {item.icon(20)}
+                  </Tab>
+                </Link>
+              );
+            })}
             <button
-              aria-label="Mais opções"
               onClick={() => setMenuOpen(true)}
-              className={`h-11 w-11 rounded-full grid place-items-center transition ${
-                !inMainNav ? "bg-accent text-white" : "text-ink-faint"
-              }`}
+              aria-haspopup="dialog"
+              aria-expanded={menuOpen}
+              className="py-0.5"
             >
-              <IconBars size={20} />
+              <Tab active={inSecondary || menuOpen} label="Mais">
+                <IconGrid size={19} />
+              </Tab>
             </button>
           </div>
           <button
             aria-label="Perguntar ao Visor"
             onClick={() => setAiOpen(true)}
-            className="pointer-events-auto h-12 w-12 rounded-full bg-card/95 backdrop-blur-xl border border-edge grid place-items-center text-ink-faint shadow-[0_12px_40px_-12px_rgba(0,0,0,0.6)]"
+            className="pointer-events-auto h-[3.75rem] w-[3.75rem] rounded-full bg-card/95 backdrop-blur-xl border border-edge grid place-items-center text-accent shrink-0 shadow-[0_12px_40px_-12px_rgba(0,0,0,0.6)] active:scale-95 transition"
           >
-            <IconSparkle size={20} />
+            <IconSparkle size={22} />
           </button>
         </div>
       </nav>
 
-      {/* Menu completo (todas as páginas) */}
-      {menuOpen && (
-        <div className="fixed inset-0 z-50" onClick={() => setMenuOpen(false)}>
-          <div className="absolute inset-0 bg-black/60 fade-in" />
-          <div className="absolute bottom-6 inset-x-0 mx-auto w-full max-w-md px-4">
-            <div
-              className="pop w-72 max-h-[78dvh] overflow-y-auto bg-card backdrop-blur-xl rounded-[2rem] p-3 shadow-2xl border border-edge"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex items-center gap-2 px-1 pb-3 mb-2 border-b border-edge">
-                <div className="flex-1 flex items-center gap-2 bg-soft rounded-full pl-1.5 pr-3 py-1.5">
-                  <span className="h-7 w-7 rounded-lg bg-accent grid place-items-center text-white shrink-0">
-                    <IconHome size={15} />
-                  </span>
-                  <span className="text-sm font-semibold text-ink flex-1 truncate">Pessoal</span>
-                  <IconUpDown size={11} />
-                </div>
-                <button
-                  aria-label="Perguntar ao Visor"
-                  onClick={() => {
-                    setMenuOpen(false);
-                    setAiOpen(true);
-                  }}
-                  className="h-10 w-10 rounded-full bg-soft grid place-items-center text-ink-dim shrink-0"
-                >
-                  <IconChat size={17} />
-                </button>
-                <button
-                  aria-label="Sincronizar"
-                  onClick={() => {
-                    setMenuOpen(false);
-                    setSyncOpen(true);
-                  }}
-                  className="h-10 w-10 rounded-full bg-soft grid place-items-center text-ink-dim shrink-0"
-                >
-                  <IconSliders size={17} />
-                </button>
-              </div>
-              {MENU.map((m) => {
-                const active = m.href === pathname;
+      <Sheet open={menuOpen} onClose={() => setMenuOpen(false)} title="Mais">
+        <div className="space-y-3.5">
+          {SECONDARY_GROUPS.map((group) => (
+            <section key={group.title}>
+              <h3 className="text-[11px] font-semibold tracking-[0.12em] uppercase text-ink-faint mb-1 px-1">
+                {group.title}
+              </h3>
+              {group.items.map((item) => {
+                const active = isActive(item.href, pathname);
                 return (
                   <Link
-                    key={m.href}
-                    href={m.href}
+                    key={item.href}
+                    href={item.href}
                     onClick={() => setMenuOpen(false)}
-                    className={`flex items-center gap-3.5 px-4 py-3 rounded-2xl text-[15px] font-semibold ${
-                      active ? "bg-soft text-accent" : "text-ink-dim"
+                    aria-current={active ? "page" : undefined}
+                    className={`flex items-center gap-3.5 px-2 py-2 rounded-2xl ${
+                      active ? "bg-soft" : ""
                     }`}
                   >
-                    <span className={active ? "text-accent" : "text-ink-faint"}>
-                      {m.icon}
+                    <span
+                      className={`h-10 w-10 rounded-2xl grid place-items-center shrink-0 ${
+                        active ? "bg-accent text-white" : "bg-soft text-ink-dim"
+                      }`}
+                    >
+                      {item.icon(19)}
                     </span>
-                    {m.label}
+                    <span className="min-w-0">
+                      <span className="block text-[15px] font-semibold text-ink leading-tight">
+                        {item.label}
+                      </span>
+                      <span className="block text-[13px] text-ink-dim truncate">
+                        {item.hint}
+                      </span>
+                    </span>
                   </Link>
                 );
               })}
-              <button
-                onClick={async () => {
-                  setMenuOpen(false);
-                  await api.logout().catch(() => {});
-                  window.location.href = "/login";
-                }}
-                className="w-full flex items-center gap-3.5 px-4 py-3 rounded-2xl text-[15px] font-semibold text-ink-dim"
-              >
-                <span className="text-ink-faint">
-                  <IconX size={20} />
-                </span>
-                Sair
-              </button>
-            </div>
+            </section>
+          ))}
+
+          <div className="grid grid-cols-2 gap-2.5 pt-1">
+            <button
+              onClick={() => {
+                setMenuOpen(false);
+                setSyncOpen(true);
+              }}
+              className="rounded-full bg-soft text-ink font-semibold py-3 text-sm inline-flex items-center justify-center gap-2"
+            >
+              <IconSync size={15} /> Sincronizar bancos
+            </button>
+            <button
+              onClick={async () => {
+                setMenuOpen(false);
+                await api.logout().catch(() => {});
+                window.location.href = "/login";
+              }}
+              className="rounded-full bg-soft text-ink-dim font-semibold py-3 text-sm inline-flex items-center justify-center gap-2"
+            >
+              <IconLogout size={15} /> Sair
+            </button>
           </div>
         </div>
-      )}
+      </Sheet>
 
       <SyncSheet open={syncOpen} onClose={() => setSyncOpen(false)} />
       <InsightsSheet open={aiOpen} onClose={() => setAiOpen(false)} />

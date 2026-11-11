@@ -6,10 +6,12 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { Field, inputCls, PrimaryButton } from "@/components/ui";
+import { IconEye, IconEyeOff } from "@/components/icons";
 
 export default function LoginPage() {
   const router = useRouter();
   const [password, setPassword] = useState("");
+  const [visible, setVisible] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -48,14 +50,26 @@ export default function LoginPage() {
           }}
         >
           <Field label="Senha">
-            <input
-              className={inputCls}
-              type="password"
-              autoFocus
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-            />
+            <div className="relative">
+              <input
+                className={`${inputCls} pr-12`}
+                type={visible ? "text" : "password"}
+                autoFocus
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+              />
+              {/* Ver o que digitou evita errar a senha e esbarrar no limite de tentativas. */}
+              <button
+                type="button"
+                aria-label={visible ? "Ocultar senha" : "Mostrar senha"}
+                onClick={() => setVisible((v) => !v)}
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 h-9 w-9 grid place-items-center text-ink-dim"
+              >
+                {visible ? <IconEyeOff size={17} /> : <IconEye size={17} />}
+              </button>
+            </div>
           </Field>
           {error && <p className="text-xs text-neg">{error}</p>}
           <PrimaryButton type="submit" disabled={loading || !password}>

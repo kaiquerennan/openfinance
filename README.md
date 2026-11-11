@@ -51,6 +51,14 @@ Nenhuma dessas credenciais fica no repositório — cada pessoa que rodar o proj
 - **Banco**: Neon (free).
 - **Frontend**: Vercel — variável `BACKEND_URL` apontando para a URL do backend no Render.
 
+## Skill de design
+
+As decisões de UX do `finance-web` usam como referência a skill [`revenue-centric-design`](https://skills.sh/heliocosta-dev/revenue-centric-design), adaptada para um app de uso pessoal: nada de funil, CTA de venda ou upsell — o critério é conseguir fazer mais com menos esforço. O conteúdo da skill não é versionado; `skills-lock.json` registra a origem e este comando a restaura:
+
+```bash
+npx skills experimental_install
+```
+
 ## Conectar um banco
 
 O widget usa o conector gratuito **MeuPluggy**: crie uma conta em [meu.pluggy.ai](https://meu.pluggy.ai), conecte seu banco real lá, e o app importa os dados via Open Finance.

@@ -275,13 +275,6 @@ export function isYieldAccount(a: { name: string | null; marketingName: string |
   return /\b99\s*pay\b/i.test(`${a.name ?? ''} ${a.marketingName ?? ''}`);
 }
 
-/** Carteira primeiro, como no app de referência. */
-export function sortAccounts(list: DbAccount[]) {
-  return [...list].sort(
-    (a, b) => Number(b.subtype === 'MANUAL') - Number(a.subtype === 'MANUAL'),
-  );
-}
-
 export interface TransactionsPage {
   total: number;
   transactions: DbTransaction[];
@@ -566,13 +559,19 @@ export const brl0 = (n: number) =>
     maximumFractionDigits: 0,
   });
 
-/** Limites de um mês YYYY-MM em ISO (from = dia 1, to = último dia). */
+/**
+ * Limites de um mês YYYY-MM como instantes no fuso do app.
+ *
+ * Antes iam só as datas ("2026-11-30"), que o backend lê como meia-noite UTC:
+ * o último dia do mês ficava de fora e a lista de um mês não batia com o total
+ * que a análise mostra para ele.
+ */
 export function monthRange(month: string) {
   const [y, m] = month.split('-').map(Number);
   const last = new Date(y, m, 0).getDate();
   return {
-    from: `${month}-01`,
-    to: `${month}-${String(last).padStart(2, '0')}`,
+    from: `${month}-01T00:00:00${TZ_OFFSET}`,
+    to: `${month}-${String(last).padStart(2, '0')}T23:59:59.999${TZ_OFFSET}`,
     daysInMonth: last,
   };
 }
@@ -615,6 +614,9 @@ const WEEKDAYS = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'];
  * Brasília já é o outro dia em UTC).
  */
 export const TIMEZONE = 'America/Sao_Paulo';
+
+/** Offset fixo de Brasília (o Brasil não tem mais horário de verão). */
+const TZ_OFFSET = '-03:00';
 
 const DATE_PARTS = new Intl.DateTimeFormat('en-US', {
   timeZone: TIMEZONE,
@@ -666,4 +668,58 @@ export function compactBRL(n: number) {
     return `${sign}${k >= 10 ? Math.round(k) : (Math.round(k * 10) / 10).toLocaleString('pt-BR')}K`;
   }
   return `${sign}${Math.round(abs)}`;
+}
+
+/** Dia de calendário de um instante em Brasília: 'YYYY-MM-DD'. */
+export function zonedDay(dateIso: string) {
+  const { year, month, day } = zonedParts(dateIso);
+  return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+}
+
+/** Hoje em Brasília como 'YYYY-MM-DD' (valor de <input type="date">). */
+export function todayIso(offsetDays = 0) {
+  const { year, month, day } = todayParts();
+  const d = new Date(Date.UTC(year, month - 1, day + offsetDays));
+  return d.toISOString().slice(0, 10);
+}
+
+/** "22 de novembro de 2026", no calendário de Brasília. */
+export function longDate(dateIso: string) {
+  const { year, month, day } = zonedParts(dateIso);
+  return `${day} de ${MONTH_LABELS[month - 1].toLowerCase()} de ${year}`;
+}
+
+/** "há 5 min", "há 3 h", "há 2 dias" — para a última sincronização. */
+export function timeAgo(dateIso: string) {
+  const mins = Math.max(0, Math.round((Date.now() - new Date(dateIso).getTime()) / 60_000));
+  if (mins < 1) return 'agora';
+  if (mins < 60) return `há ${mins} min`;
+  const hours = Math.round(mins / 60);
+  if (hours < 24) return `há ${hours} h`;
+  const days = Math.round(hours / 24);
+  return `há ${days} ${days === 1 ? 'dia' : 'dias'}`;
+}
+
+/** Lê "1.234,56", "1234.56" ou "1234,5" digitado pelo usuário. NaN se inválido. */
+export function parseBRL(text: string) {
+  const clean = text.trim().replace(/[R$\s]/g, '');
+  if (!clean) return NaN;
+  return Number(clean.includes(',') ? clean.replace(/\./g, '').replace(',', '.') : clean);
+}
+
+/** Descrição exibível de uma transação. */
+export function txTitle(t: Pick<DbTransaction, 'description' | 'descriptionRaw'>) {
+  return t.description ?? t.descriptionRaw ?? 'Sem descrição';
+}
+
+/** Nome curto da conta de uma transação (quando o backend a inclui). */
+export function txAccountName(t: DbTransaction) {
+  const a = t.account;
+  if (!a) return null;
+  return a.marketingName ?? a.name ?? a.item.connectorName;
+}
+
+/** "saldo em atraso" -> "Saldo em atraso" (descrições de recorrência vêm em minúsculas). */
+export function capFirst(text: string) {
+  return text.charAt(0).toUpperCase() + text.slice(1);
 }

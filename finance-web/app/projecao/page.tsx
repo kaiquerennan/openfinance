@@ -18,11 +18,19 @@ import {
   monthLabel,
 } from "@/lib/api";
 import { useDataVersion } from "@/lib/bus";
-import BlueHeader from "@/components/Header";
+import PageHeader from "@/components/Header";
 import { ProjectionChart } from "@/components/Charts";
 import MonthOutlookCard from "@/components/MonthOutlookCard";
 import CompoundSimulator from "@/components/CompoundSimulator";
-import { Amount, Card, ErrorCard, LoadingCard, TipCarousel } from "@/components/ui";
+import {
+  Amount,
+  Card,
+  CardHeader,
+  ErrorCard,
+  LoadingCard,
+  PageHero,
+  TipCarousel,
+} from "@/components/ui";
 
 const MONTHS_AHEAD = 6;
 
@@ -85,100 +93,113 @@ export default function ProjecaoPage() {
 
   return (
     <div>
-      <BlueHeader title="Projeção">
-        <div className="mt-4">
-          <div className="text-ink-dim text-[15px]">SALDO PROJETADO</div>
-          <div className="flex items-center gap-3 mt-1">
-            <div className="text-4xl font-semibold">
-              <Amount>{brl0(saldoFinal)}</Amount>
-            </div>
-            <span
-              className={`text-xs font-bold px-2.5 py-1 rounded-full flex items-center gap-1 ${
-                delta >= 0 ? "bg-pos/15 text-pos" : "bg-neg/15 text-neg"
-              }`}
-            >
-              {delta >= 0 ? "▲" : "▼"} <Amount>{brl0(Math.abs(delta))}</Amount> no período
-            </span>
-          </div>
-        </div>
-      </BlueHeader>
+      <PageHeader title="Projeção" back>
+        <PageHero
+          label={`Saldo previsto em ${monthLabel(addMonths(month, MONTHS_AHEAD - 1)).toLowerCase()}`}
+          value={<Amount>{brl0(saldoFinal)}</Amount>}
+          hint={
+            loading ? undefined : (
+              <span className={delta >= 0 ? "text-pos" : "text-neg"}>
+                {delta >= 0 ? "▲" : "▼"} <Amount>{brl0(Math.abs(delta))}</Amount>{" "}
+                <span className="text-ink-dim">em relação a hoje, mantendo o ritmo recente</span>
+              </span>
+            )
+          }
+        />
+      </PageHeader>
 
       <div className="px-4 mt-5 space-y-4">
         {error && <ErrorCard message={error} />}
         {loading ? (
-          <LoadingCard text="Calculando projeção…" />
+          !error && <LoadingCard text="Calculando projeção…" />
         ) : (
-          <div className="rise space-y-4">
-            <TipCarousel
-              tips={[
-                ...(report?.narrative.fimDoMes ?? []),
-                ...(report?.narrative.previsoes ?? []),
-                ...(report?.narrative.oportunidades ?? []),
-              ]}
-            />
+          <div className="rise space-y-4 lg:space-y-0 lg:grid lg:grid-cols-2 lg:gap-5 lg:items-start">
+            <div className="space-y-4">
+              <MonthOutlookCard outlook={report?.data.outlook} />
 
-            <MonthOutlookCard outlook={report?.data.outlook} />
-
-            <CompoundSimulator habits={report?.data.habits} />
-
-            <Card>
-              <ProjectionChart points={points} />
-            </Card>
-
-            {parcelas && parcelas.committedTotal > 0 && (
               <Card>
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <div className="text-[15px] font-semibold text-ink">
-                      Já comprometido em parcelas
-                    </div>
-                    <p className="text-xs text-ink-dim mt-1 max-w-xs">
-                      Compras que já foram feitas e vão ser cobradas nos próximos meses
-                      {parcelas.freeFrom ? `, até ${monthLabel(parcelas.freeFrom)}` : ""}.
-                    </p>
+                <CardHeader title="Próximos 6 meses" />
+                <ProjectionChart points={points} />
+
+                {/* A mesma projeção em números: uma linha por mês, sem repetir rótulos. */}
+                <div className="mt-4 pt-1 border-t border-edge">
+                  <div className="flex text-xs text-ink-faint py-2">
+                    <span className="flex-1">Mês</span>
+                    <span className="w-28 text-right">Resultado</span>
+                    <span className="w-28 text-right">Saldo</span>
                   </div>
-                  <Link
-                    href="/parcelas"
-                    className="text-right shrink-0 text-xl font-bold text-ink"
-                  >
-                    <Amount>{brl0(parcelas.committedTotal)}</Amount>
-                    <div className="text-xs font-semibold text-accent">ver detalhe</div>
-                  </Link>
+                  <div className="divide-y divide-edge">
+                    {points.map((p, i) => {
+                      const mes = addMonths(month, i);
+                      const parcela = parcelas?.monthly.find((m) => m.month === mes);
+                      return (
+                        <div key={mes} className="py-2.5">
+                          <div className="flex items-center text-[14px]">
+                            <span className="flex-1 font-semibold text-ink">
+                              {monthLabel(mes).split(" ")[0]}
+                              {i === 0 && (
+                                <span className="block text-xs text-ink-faint font-normal">
+                                  em curso
+                                </span>
+                              )}
+                            </span>
+                            <span
+                              className={`w-28 text-right ${
+                                p.resultado < 0 ? "text-neg" : "text-pos"
+                              }`}
+                            >
+                              <Amount>{`${p.resultado < 0 ? "-" : "+"}${brl0(Math.abs(p.resultado))}`}</Amount>
+                            </span>
+                            <span className="w-28 text-right font-bold text-ink">
+                              <Amount>{brl0(p.saldo)}</Amount>
+                            </span>
+                          </div>
+                          {parcela && parcela.amount > 0 && (
+                            <div className="text-xs text-ink-faint mt-0.5">
+                              <Amount>{brl(parcela.amount)}</Amount> já comprometidos em parcelas
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               </Card>
-            )}
 
-            <Card className="divide-y divide-edge">
-              {points.map((p, i) => {
-                const mes = addMonths(month, i);
-                const parcela = parcelas?.monthly.find((m) => m.month === mes);
-                return (
-                <div key={i} className="flex items-center justify-between py-3">
-                  <div>
-                    <div className="text-[15px] font-semibold text-ink">
-                      {monthLabel(mes)}
-                    </div>
-                    <div className="text-xs text-ink-dim">
-                      Resultado do mês:{" "}
-                      <Amount>{`${p.resultado < 0 ? "-" : "+"}${brl(Math.abs(p.resultado))}`}</Amount>
-                    </div>
-                    {parcela && parcela.amount > 0 && (
-                      <div className="text-xs text-ink-faint mt-0.5">
-                        Inclui <Amount>{brl(parcela.amount)}</Amount> de parcelas já
-                        contratadas
+              {parcelas && parcelas.committedTotal > 0 && (
+                <Card>
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="text-[15px] font-semibold text-ink">
+                        Já comprometido em parcelas
                       </div>
-                    )}
-                  </div>
-                  <div className="text-right">
-                    <div className="text-[15px] font-bold text-ink">
-                      <Amount>{brl0(p.saldo)}</Amount>
+                      <p className="text-xs text-ink-dim mt-1 max-w-xs">
+                        Compras que já foram feitas e vão ser cobradas nos próximos meses
+                        {parcelas.freeFrom ? `, até ${monthLabel(parcelas.freeFrom)}` : ""}.
+                      </p>
                     </div>
-                    <div className="text-xs text-ink-dim">Saldo projetado</div>
+                    <Link
+                      href="/parcelas"
+                      className="text-right shrink-0 text-xl font-bold text-ink"
+                    >
+                      <Amount>{brl0(parcelas.committedTotal)}</Amount>
+                      <div className="text-xs font-semibold text-accent">ver detalhe</div>
+                    </Link>
                   </div>
-                </div>
-                );
-              })}
-            </Card>
+                </Card>
+              )}
+            </div>
+
+            <div className="space-y-4">
+              <TipCarousel
+                tips={[
+                  ...(report?.narrative.previsoes ?? []),
+                  ...(report?.narrative.oportunidades ?? []),
+                ]}
+              />
+
+              <CompoundSimulator habits={report?.data.habits} />
+            </div>
           </div>
         )}
       </div>

@@ -30,20 +30,18 @@ export default function ReserveCard({ reserve }: { reserve?: ReserveStatus }) {
 
   return (
     <Card>
-      <div className="flex items-start justify-between">
-        <div>
-          <div className="text-sm text-ink-dim">Reserva de emergência</div>
-          <div className="flex items-baseline gap-1.5 mt-0.5">
-            <span className="text-3xl font-semibold text-ink">{meses}</span>
-            <span className="text-ink-dim text-[15px]">
-              {reserve.months === 1 ? "mês" : "meses"} de custo de vida
-            </span>
-          </div>
-        </div>
+      <div className="flex items-center justify-between gap-3">
+        <div className="text-sm text-ink-dim">Reserva de emergência</div>
         <span
-          className={`text-xs font-bold px-2.5 py-1 rounded-full bg-soft ${meta.text}`}
+          className={`text-xs font-bold px-2.5 py-1 rounded-full bg-soft whitespace-nowrap ${meta.text}`}
         >
           {meta.label}
+        </span>
+      </div>
+      <div className="flex items-baseline gap-1.5 mt-1">
+        <span className="text-3xl font-semibold text-ink">{meses}</span>
+        <span className="text-ink-dim text-[15px]">
+          {reserve.months === 1 ? "mês" : "meses"} de custo de vida
         </span>
       </div>
 

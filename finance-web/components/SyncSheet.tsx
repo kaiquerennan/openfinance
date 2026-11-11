@@ -1,7 +1,7 @@
 "use client";
 
-// Sheet de sincronização / conexão de bancos — compartilhado pelo Header
-// (mobile) e pela Sidebar (desktop), cada um com seu próprio open/close.
+// Sheet de sincronização / conexão de bancos — aberto pelo menu "Mais"
+// (celular) e pela barra lateral (desktop), cada um com seu próprio open/close.
 
 import { useState } from "react";
 import { api } from "@/lib/api";
@@ -60,12 +60,11 @@ export default function SyncSheet({
 
   return (
     <>
-      <Sheet open={open} onClose={onClose} title="Contas conectadas">
+      <Sheet open={open} onClose={onClose} title="Bancos conectados">
         <div className="space-y-3">
           <p className="text-sm text-ink-dim">
-            Atualize os dados dos bancos conectados via Open Finance ou conecte
-            uma nova instituição. Ao conectar, entre com sua conta MeuPluggy
-            (meu.pluggy.ai) e selecione lá o banco real (Nubank, XP, BB...).
+            Os bancos já sincronizam sozinhos a cada 3 horas. Use isto se quiser os
+            dados de agora.
           </p>
           <PrimaryButton onClick={syncNow} disabled={syncing}>
             <span className="inline-flex items-center gap-2">
@@ -80,6 +79,10 @@ export default function SyncSheet({
           >
             {connecting ? "Abrindo…" : "Conectar novo banco"}
           </button>
+          <p className="text-xs text-ink-faint text-center">
+            Ao conectar, entre com sua conta MeuPluggy (meu.pluggy.ai) e escolha lá
+            o banco.
+          </p>
           {(syncMsg || connectError) && (
             <p className="text-xs text-ink-dim text-center">{syncMsg ?? connectError}</p>
           )}
