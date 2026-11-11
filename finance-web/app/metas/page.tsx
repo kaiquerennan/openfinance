@@ -1,207 +1,223 @@
 "use client";
 
-// Metas: aportes planejados dos próximos meses, resumo do mês e cards de
-// meta com progresso, aporte e conclusão.
+// Metas: as metas vêm primeiro, cada uma com progresso, prazo e o aporte do
+// mês. (Antes a tela abria com um gráfico de aportes planejados — seis barras
+// iguais — e as metas ficavam lá embaixo.)
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
-  addMonths,
   api,
   brl0,
   currentMonth,
   Goal,
   MONTH_LABELS,
-  monthLabel,
+  parseBRL,
 } from "@/lib/api";
 import { bumpData, useDataVersion } from "@/lib/bus";
-import BlueHeader from "@/components/Header";
+import PageHeader, { HeaderAction } from "@/components/Header";
 import GoalSuggestions from "@/components/GoalSuggestions";
 import Sheet from "@/components/Sheet";
-import { GoalBars } from "@/components/Charts";
 import {
   Amount,
   Card,
+  EmptyState,
   ErrorCard,
   Field,
+  FilterChip,
   inputCls,
   LoadingCard,
-  Money,
+  PageHero,
   PrimaryButton,
+  ProgressBar,
+  SecondaryButton,
   SegTabs,
 } from "@/components/ui";
 import { IconCheck, IconClock, IconTrash } from "@/components/icons";
 
-const TABS = [
-  { key: "andamento", label: "Em andamento" },
-  { key: "prontas", label: "Prontas" },
-  { key: "concluidas", label: "Concluídas" },
-];
+const GOAL_ICONS = ["🎯", "🚗", "✈️", "🏠", "🛟", "💻", "🎓", "💍", "📱", "🏖️"];
 
-function bucket(g: Goal): string {
+type Bucket = "andamento" | "prontas" | "concluidas";
+
+function bucket(g: Goal): Bucket {
   if (g.status === "DONE") return "concluidas";
   if (g.status === "READY" || g.saved >= Number(g.targetAmount)) return "prontas";
   return "andamento";
 }
 
-/** "5 meses e 20 dias" até a meta, no ritmo do aporte mensal. */
-function remainingLabel(g: Goal): string | null {
-  const monthly = Number(g.monthlyContribution ?? 0);
-  const missing = Number(g.targetAmount) - g.saved;
+/** "2 anos e 3 meses" / "5 meses" / "20 dias" para juntar `missing` a `monthly` por mês. */
+function timeToReach(missing: number, monthly: number): string | null {
   if (missing <= 0 || monthly <= 0) return null;
   const months = missing / monthly;
-  const whole = Math.floor(months);
-  const days = Math.round((months - whole) * 30);
-  if (whole === 0) return `${days} dias`;
-  return `${whole} ${whole === 1 ? "mês" : "meses"}${days > 0 ? ` e ${days} dias` : ""}`;
+  if (months < 1) return `${Math.max(1, Math.round(months * 30))} dias`;
+  const whole = Math.ceil(months);
+  const years = Math.floor(whole / 12);
+  const rest = whole % 12;
+  const y = years ? `${years} ${years === 1 ? "ano" : "anos"}` : "";
+  const m = rest ? `${rest} ${rest === 1 ? "mês" : "meses"}` : "";
+  return [y, m].filter(Boolean).join(" e ");
 }
+
+const monthName = (m: string) => MONTH_LABELS[Number(m.split("-")[1]) - 1].toLowerCase();
 
 export default function MetasPage() {
   const version = useDataVersion();
   const [goals, setGoals] = useState<Goal[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [tab, setTab] = useState("andamento");
+  const [tab, setTab] = useState<Bucket>("andamento");
   const [createOpen, setCreateOpen] = useState(false);
-  const [selected, setSelected] = useState<Goal | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const month = currentMonth();
 
   useEffect(() => {
-    api.goals().then(setGoals).catch((e) => setError(e.message));
+    api
+      .goals()
+      .then((g) => {
+        setGoals(g);
+        setError(null);
+      })
+      .catch((e) => setError(e.message));
   }, [version]);
 
-  const active = (goals ?? []).filter((g) => g.status === "ACTIVE");
-
-  // Barras: mês atual = aportes reais; futuros = soma dos aportes planejados
-  const chart = useMemo(() => {
-    const planned = active.reduce((s, g) => s + Number(g.monthlyContribution ?? 0), 0);
-    return Array.from({ length: 6 }, (_, i) => {
-      const m = addMonths(month, i);
-      const [, mm] = m.split("-");
-      const actual = (goals ?? []).reduce(
-        (s, g) => s + g.entries.filter((e) => e.month === m).reduce((a, e) => a + Number(e.amount), 0),
-        0,
-      );
-      return {
-        name: MONTH_LABELS[Number(mm) - 1].slice(0, 3),
-        value: i === 0 ? Math.max(actual, planned) : planned,
-        active: i === 0,
-      };
-    });
-  }, [goals, active, month]);
+  const all = goals ?? [];
+  const active = all.filter((g) => g.status === "ACTIVE");
+  const planned = active.reduce((s, g) => s + Number(g.monthlyContribution ?? 0), 0);
+  const savedTotal = all.reduce((s, g) => s + g.saved, 0);
 
   const monthTotal = (g: Goal) =>
-    g.entries
-      .filter((e) => e.month === month)
-      .reduce((s, e) => s + Number(e.amount), 0);
+    g.entries.filter((e) => e.month === month).reduce((s, e) => s + Number(e.amount), 0);
 
-  const savedTotal = (goals ?? []).reduce((s, g) => s + g.saved, 0);
-  const list = (goals ?? []).filter((g) => bucket(g) === tab);
+  const counts: Record<Bucket, number> = { andamento: 0, prontas: 0, concluidas: 0 };
+  for (const g of all) counts[bucket(g)]++;
+  // Com tudo em uma aba só, as abas seriam três botões para nada.
+  const showTabs = counts.prontas + counts.concluidas > 0;
+  const shownTab = showTabs ? tab : "andamento";
+  const list = all.filter((g) => bucket(g) === shownTab);
+  const selected = all.find((g) => g.id === selectedId) ?? null;
 
   return (
     <div>
-      <BlueHeader title="Metas" onAdd={() => setCreateOpen(true)} />
+      <PageHeader
+        title="Metas"
+        back
+        actions={<HeaderAction label="Nova meta" onClick={() => setCreateOpen(true)} />}
+      >
+        {all.length > 0 && (
+          <PageHero
+            label="Guardado para suas metas"
+            value={<Amount>{brl0(savedTotal)}</Amount>}
+            hint={
+              <>
+                {active.length} {active.length === 1 ? "meta ativa" : "metas ativas"}
+                {planned > 0 && (
+                  <>
+                    {" · "}
+                    <Amount>{brl0(planned)}</Amount> planejados por mês
+                  </>
+                )}
+              </>
+            }
+          />
+        )}
+      </PageHeader>
 
       <div className="px-4 mt-5 space-y-4">
         {error && <ErrorCard message={error} />}
-        {goals && <GoalSuggestions goals={goals} />}
         {!goals ? (
-          <LoadingCard text="Carregando metas…" />
+          !error && <LoadingCard text="Carregando metas…" />
+        ) : all.length === 0 ? (
+          <EmptyState
+            icon="🎯"
+            text="Uma meta mostra quanto falta e em quanto tempo você chega lá — e os aportes do seu extrato entram nela com um toque."
+            action={{ label: "Criar primeira meta", onClick: () => setCreateOpen(true) }}
+          />
         ) : (
-          <div className="rise space-y-4 lg:space-y-5">
-            <div className="lg:grid lg:grid-cols-3 lg:gap-6 lg:items-start space-y-4 lg:space-y-0">
-              <div className="lg:col-span-2">
-                <GoalBars data={chart} height={290} />
-              </div>
+          <div className="rise space-y-4 lg:max-w-4xl">
+            <GoalSuggestions goals={goals} />
 
-              {/* Resumo do mês */}
-              <Card className="lg:col-span-1">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-bold text-ink">
-                    {monthLabel(month).replace(" ", " de ")}
-                  </h2>
-                  <span className="text-sm text-ink-faint">
-                    {active.length} meta{active.length !== 1 ? "s" : ""} ativa
-                    {active.length !== 1 ? "s" : ""}
-                  </span>
-                </div>
-                <div className="mt-3 space-y-4">
-                  {active.map((g) => (
-                    <div key={g.id} className="flex items-center gap-3.5">
-                      <span className="h-11 w-11 rounded-2xl bg-soft grid place-items-center text-xl shrink-0">
-                        {g.icon}
-                      </span>
-                      <span className="flex-1 text-[16px] font-medium text-ink truncate">
-                        {g.name}
-                      </span>
-                      <Money
-                        value={monthTotal(g) || Number(g.monthlyContribution ?? 0)}
-                        cents={false}
-                        className="text-[17px]"
-                      />
-                    </div>
-                  ))}
-                  {active.length === 0 && (
-                    <p className="text-sm text-ink-faint">Nenhuma meta ativa.</p>
-                  )}
-                </div>
-                <div className="flex items-center justify-between pt-4 mt-2 border-t border-edge">
-                  <span className="text-[16px] font-medium text-ink">Total</span>
-                  <Money value={savedTotal} cents={false} className="text-xl" />
-                </div>
-              </Card>
-            </div>
+            {showTabs && (
+              <SegTabs
+                variant="light"
+                tabs={[
+                  { key: "andamento", label: "Em andamento", count: counts.andamento },
+                  { key: "prontas", label: "Prontas", count: counts.prontas },
+                  { key: "concluidas", label: "Concluídas", count: counts.concluidas },
+                ]}
+                value={shownTab}
+                onChange={(k) => setTab(k as Bucket)}
+              />
+            )}
 
-            <SegTabs variant="light" tabs={TABS} value={tab} onChange={setTab} />
-
-            {/* Cards de meta */}
             <div className="space-y-3 lg:space-y-0 lg:grid lg:grid-cols-2 lg:gap-4">
               {list.map((g) => {
                 const target = Number(g.targetAmount);
-                const pct = target > 0 ? Math.min(Math.round((g.saved / target) * 100), 100) : 0;
-                const contributed = monthTotal(g) > 0;
-                const remaining = remainingLabel(g);
+                const ratio = target > 0 ? g.saved / target : 0;
+                const monthly = Number(g.monthlyContribution ?? 0);
+                const thisMonth = monthTotal(g);
+                const eta = timeToReach(target - g.saved, monthly);
                 return (
-                  <Card
-                    key={g.id}
-                    className="cursor-pointer"
-                    onClick={() => setSelected(g)}
-                  >
+                  <Card key={g.id} onClick={() => setSelectedId(g.id)}>
                     <div className="flex items-center gap-3.5">
-                      <span className="h-13 w-13 min-h-12 min-w-12 rounded-2xl bg-soft grid place-items-center text-2xl shrink-0">
+                      <span className="h-12 w-12 rounded-2xl bg-soft grid place-items-center text-2xl shrink-0">
                         {g.icon}
                       </span>
                       <div className="flex-1 min-w-0">
                         <div className="text-[16px] font-semibold text-ink truncate">
                           {g.name}
                         </div>
-                        <div className="text-[15px] mt-0.5">
-                          <span className="font-bold text-ink"><Amount>{brl0(g.saved)}</Amount></span>
-                          <span className="text-ink-faint"> / <Amount>{brl0(target)}</Amount></span>
+                        <div className="text-[14px] mt-0.5">
+                          <span className="font-bold text-ink">
+                            <Amount>{brl0(g.saved)}</Amount>
+                          </span>
+                          <span className="text-ink-dim">
+                            {" "}
+                            de <Amount>{brl0(target)}</Amount>
+                          </span>
                         </div>
                       </div>
-                      <span className="rounded-full bg-soft px-3.5 py-2 text-sm font-bold text-ink">
-                        {pct}%
+                      <span className="text-lg font-bold text-ink">
+                        {Math.min(Math.round(ratio * 100), 100)}%
                       </span>
                     </div>
-                    <div className="flex items-center justify-between mt-4">
-                      <span
-                        className={`inline-flex items-center gap-1.5 text-sm font-semibold ${
-                          contributed ? "text-pos" : "text-ink-faint"
-                        }`}
-                      >
-                        📅 Aporte Mensal {contributed && <IconCheck size={14} />}
-                      </span>
-                      {remaining && (
-                        <span className="inline-flex items-center gap-1.5 text-sm text-ink-dim">
-                          <IconClock size={14} /> {remaining}
+                    <ProgressBar
+                      ratio={Math.min(ratio, 1)}
+                      color="var(--color-amber)"
+                      className="mt-4"
+                    />
+                    {g.status === "ACTIVE" && (
+                      <div className="flex items-center justify-between gap-3 mt-3 text-[13px]">
+                        {thisMonth > 0 ? (
+                          <span className="inline-flex items-center gap-1.5 font-semibold text-pos">
+                            <IconCheck size={13} />
+                            <Amount>{brl0(thisMonth)}</Amount> em {monthName(month)}
+                          </span>
+                        ) : (
+                          <span className="font-semibold text-accent">
+                            {monthly > 0 ? (
+                              <>
+                                Aportar <Amount>{brl0(monthly)}</Amount> de {monthName(month)}
+                              </>
+                            ) : (
+                              "Fazer um aporte"
+                            )}
+                          </span>
+                        )}
+                        <span className="inline-flex items-center gap-1.5 text-ink-dim">
+                          {eta ? (
+                            <>
+                              <IconClock size={13} /> {eta}
+                            </>
+                          ) : monthly === 0 ? (
+                            "sem aporte mensal definido"
+                          ) : null}
                         </span>
-                      )}
-                    </div>
+                      </div>
+                    )}
                   </Card>
                 );
               })}
               {list.length === 0 && (
-                <p className="text-sm text-ink-faint text-center py-8">
+                <p className="text-sm text-ink-faint text-center py-8 lg:col-span-2">
                   Nenhuma meta aqui ainda.
                 </p>
               )}
@@ -210,29 +226,57 @@ export default function MetasPage() {
         )}
       </div>
 
-      <CreateGoalSheet open={createOpen} onClose={() => setCreateOpen(false)} />
+      <Sheet open={createOpen} onClose={() => setCreateOpen(false)} title="Nova meta">
+        {createOpen && <CreateGoalForm onClose={() => setCreateOpen(false)} />}
+      </Sheet>
       <GoalSheet
         key={selected?.id ?? "none"}
         goal={selected}
         month={month}
-        onClose={() => setSelected(null)}
+        onClose={() => setSelectedId(null)}
       />
     </div>
   );
 }
 
-function CreateGoalSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
+function IconPicker({ value, onChange }: { value: string; onChange: (i: string) => void }) {
+  return (
+    <div className="flex gap-2 overflow-x-auto -mx-5 px-5 pb-1" role="radiogroup" aria-label="Ícone">
+      {GOAL_ICONS.map((i) => (
+        <button
+          key={i}
+          type="button"
+          role="radio"
+          aria-checked={value === i}
+          onClick={() => onChange(i)}
+          className={`h-11 w-11 shrink-0 rounded-2xl grid place-items-center text-xl ${
+            value === i ? "bg-accent/20 ring-2 ring-accent" : "bg-soft"
+          }`}
+        >
+          {i}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function CreateGoalForm({ onClose }: { onClose: () => void }) {
   const [name, setName] = useState("");
-  const [icon, setIcon] = useState("🎯");
+  const [icon, setIcon] = useState(GOAL_ICONS[0]);
   const [target, setTarget] = useState("");
-  const [initial, setInitial] = useState("");
   const [monthly, setMonthly] = useState("");
+  const [initial, setInitial] = useState("");
+  const [hasInitial, setHasInitial] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const t = parseBRL(target) || 0;
+  const m = parseBRL(monthly) || 0;
+  const i = hasInitial ? parseBRL(initial) || 0 : 0;
+  const eta = timeToReach(t - i, m);
+
   async function submit() {
-    const t = Number(target.replace(",", "."));
-    if (!name.trim() || !t || t <= 0) {
+    if (!name.trim() || t <= 0) {
       setError("Dê um nome e um valor alvo maior que zero.");
       return;
     }
@@ -243,14 +287,10 @@ function CreateGoalSheet({ open, onClose }: { open: boolean; onClose: () => void
         name: name.trim(),
         icon,
         targetAmount: t,
-        initialAmount: Number(initial.replace(",", ".")) || 0,
-        monthlyContribution: Number(monthly.replace(",", ".")) || 0,
+        initialAmount: i,
+        monthlyContribution: m,
       });
       bumpData();
-      setName("");
-      setTarget("");
-      setInitial("");
-      setMonthly("");
       onClose();
     } catch (e) {
       setError((e as Error).message);
@@ -260,61 +300,73 @@ function CreateGoalSheet({ open, onClose }: { open: boolean; onClose: () => void
   }
 
   return (
-    <Sheet open={open} onClose={onClose} title="Nova meta">
-      <div className="space-y-4">
-        <div className="grid grid-cols-[4.5rem_1fr] gap-3">
-          <Field label="Ícone">
-            <input
-              className={`${inputCls} text-center text-xl`}
-              value={icon}
-              onChange={(e) => setIcon(e.target.value)}
-              maxLength={4}
-            />
-          </Field>
-          <Field label="Nome">
-            <input
-              className={inputCls}
-              placeholder="Ex.: Carro, Viagem…"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
-          </Field>
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Valor alvo (R$)">
-            <input
-              className={inputCls}
-              inputMode="decimal"
-              placeholder="30000"
-              value={target}
-              onChange={(e) => setTarget(e.target.value)}
-            />
-          </Field>
-          <Field label="Já poupado (R$)">
-            <input
-              className={inputCls}
-              inputMode="decimal"
-              placeholder="0"
-              value={initial}
-              onChange={(e) => setInitial(e.target.value)}
-            />
-          </Field>
-        </div>
-        <Field label="Aporte mensal (R$)">
+    <form
+      className="space-y-4"
+      onSubmit={(e) => {
+        e.preventDefault();
+        submit();
+      }}
+    >
+      <IconPicker value={icon} onChange={setIcon} />
+      <Field label="Para quê?">
+        <input
+          className={inputCls}
+          placeholder="Ex.: carro, viagem, reserva…"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          autoFocus
+        />
+      </Field>
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="Quanto custa (R$)">
           <input
             className={inputCls}
             inputMode="decimal"
-            placeholder="0"
+            placeholder="30.000"
+            value={target}
+            onChange={(e) => setTarget(e.target.value)}
+          />
+        </Field>
+        <Field label="Aporte por mês (R$)">
+          <input
+            className={inputCls}
+            inputMode="decimal"
+            placeholder="opcional"
             value={monthly}
             onChange={(e) => setMonthly(e.target.value)}
           />
         </Field>
-        {error && <p className="text-xs text-neg">{error}</p>}
-        <PrimaryButton onClick={submit} disabled={saving}>
-          {saving ? "Criando…" : "Criar meta"}
-        </PrimaryButton>
       </div>
-    </Sheet>
+      {hasInitial ? (
+        <Field label="Já tenho guardado (R$)">
+          <input
+            className={inputCls}
+            inputMode="decimal"
+            placeholder="0"
+            value={initial}
+            onChange={(e) => setInitial(e.target.value)}
+            autoFocus
+          />
+        </Field>
+      ) : (
+        <FilterChip active={false} onClick={() => setHasInitial(true)}>
+          + Já tenho uma parte guardada
+        </FilterChip>
+      )}
+      {eta && (
+        <p className="text-sm text-ink-dim">
+          Nesse ritmo você chega lá em <b className="text-ink font-semibold">{eta}</b>.
+        </p>
+      )}
+      {error && (
+        <p className="text-xs text-neg" role="alert">
+          {error}
+        </p>
+      )}
+      <PrimaryButton type="submit" disabled={saving}>
+        {saving ? "Criando…" : "Criar meta"}
+      </PrimaryButton>
+    </form>
   );
 }
 
@@ -327,21 +379,30 @@ function GoalSheet({
   month: string;
   onClose: () => void;
 }) {
-  const [amount, setAmount] = useState(goal?.monthlyContribution ?? "");
+  const monthly = Number(goal?.monthlyContribution ?? 0);
+  const [amount, setAmount] = useState(monthly > 0 ? String(monthly).replace(".", ",") : "");
+  const [editing, setEditing] = useState(false);
+  const [name, setName] = useState(goal?.name ?? "");
+  const [icon, setIcon] = useState(goal?.icon ?? GOAL_ICONS[0]);
+  const [target, setTarget] = useState(goal ? String(Number(goal.targetAmount)).replace(".", ",") : "");
+  const [contribution, setContribution] = useState(monthly > 0 ? String(monthly).replace(".", ",") : "");
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   if (!goal) return null;
-  const target = Number(goal.targetAmount);
+  const targetValue = Number(goal.targetAmount);
   const done = goal.status === "DONE";
+  const missing = Math.max(targetValue - goal.saved, 0);
 
-  async function run(fn: () => Promise<unknown>) {
+  async function run(fn: () => Promise<unknown>, close = true) {
     setBusy(true);
     setError(null);
     try {
       await fn();
       bumpData();
-      onClose();
+      if (close) onClose();
+      else setEditing(false);
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -352,21 +413,40 @@ function GoalSheet({
   return (
     <Sheet open onClose={onClose} title={`${goal.icon} ${goal.name}`}>
       <div className="space-y-4">
-        <div className="text-center">
-          <span className="font-bold text-2xl text-ink"><Amount>{brl0(goal.saved)}</Amount></span>
-          <span className="text-ink-faint text-lg"> / <Amount>{brl0(target)}</Amount></span>
-        </div>
-        <div className="h-3 rounded-full bg-soft overflow-hidden">
-          <div
-            className="h-full rounded-full bg-amber"
-            style={{ width: `${Math.min((goal.saved / target) * 100, 100)}%` }}
+        <div>
+          <div className="flex items-baseline justify-between gap-3">
+            <span className="font-bold text-2xl text-ink">
+              <Amount>{brl0(goal.saved)}</Amount>
+            </span>
+            <span className="text-ink-dim text-sm">
+              de <Amount>{brl0(targetValue)}</Amount>
+            </span>
+          </div>
+          <ProgressBar
+            ratio={targetValue > 0 ? Math.min(goal.saved / targetValue, 1) : 0}
+            color="var(--color-amber)"
+            className="mt-2.5"
           />
+          {missing > 0 && (
+            <div className="text-[13px] text-ink-dim mt-1.5">
+              Faltam <Amount>{brl0(missing)}</Amount>
+              {timeToReach(missing, monthly) ? ` · ${timeToReach(missing, monthly)} no ritmo atual` : ""}
+            </div>
+          )}
         </div>
 
-        {!done && (
-          <div className="flex gap-3 items-end">
+        {!done && !editing && (
+          <form
+            className="flex gap-3 items-end"
+            onSubmit={(e) => {
+              e.preventDefault();
+              const v = parseBRL(amount);
+              if (v > 0) run(() => api.addGoalEntry(goal.id, month, v));
+              else setError("Informe o valor do aporte.");
+            }}
+          >
             <div className="flex-1">
-              <Field label={`Aportar em ${monthLabel(month)}`}>
+              <Field label={`Aporte de ${monthName(month)} (R$)`}>
                 <input
                   className={inputCls}
                   inputMode="decimal"
@@ -377,42 +457,101 @@ function GoalSheet({
               </Field>
             </div>
             <button
+              type="submit"
               disabled={busy}
-              onClick={() => {
-                const v = Number(amount.replace(",", "."));
-                if (v) run(() => api.addGoalEntry(goal.id, month, v));
-              }}
-              className="rounded-full bg-azure-600 text-white font-semibold px-6 py-3.5 text-sm disabled:opacity-50"
+              className="rounded-full bg-azure-600 text-white font-semibold px-6 py-3 text-sm disabled:opacity-50"
             >
               Aportar
             </button>
-          </div>
+          </form>
         )}
 
-        <div className="grid grid-cols-2 gap-3 pt-1">
-          <button
-            disabled={busy}
-            onClick={() =>
-              run(() =>
-                api.updateGoal(goal.id, { status: done ? "ACTIVE" : "DONE" }),
-              )
-            }
-            className="rounded-full bg-soft text-ink font-semibold py-3.5 text-sm"
-          >
-            {done ? "Reativar" : "Concluir meta"}
-          </button>
-          <button
-            disabled={busy}
-            onClick={() => {
-              if (confirm(`Excluir a meta "${goal.name}"?`))
-                run(() => api.deleteGoal(goal.id));
+        {editing ? (
+          <form
+            className="space-y-3 rounded-2xl bg-soft/50 p-3.5"
+            onSubmit={(e) => {
+              e.preventDefault();
+              const t = parseBRL(target);
+              if (!name.trim() || !(t > 0)) {
+                setError("Nome e valor alvo são obrigatórios.");
+                return;
+              }
+              run(
+                () =>
+                  api.updateGoal(goal.id, {
+                    name: name.trim(),
+                    icon,
+                    targetAmount: t,
+                    monthlyContribution: parseBRL(contribution) || 0,
+                  }),
+                false,
+              );
             }}
-            className="rounded-full bg-neg/10 text-neg font-semibold py-3.5 text-sm inline-flex items-center justify-center gap-2"
           >
-            <IconTrash size={15} /> Excluir
-          </button>
-        </div>
-        {error && <p className="text-xs text-neg">{error}</p>}
+            <IconPicker value={icon} onChange={setIcon} />
+            <Field label="Nome">
+              <input className={inputCls} value={name} onChange={(e) => setName(e.target.value)} />
+            </Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Valor alvo (R$)">
+                <input
+                  className={inputCls}
+                  inputMode="decimal"
+                  value={target}
+                  onChange={(e) => setTarget(e.target.value)}
+                />
+              </Field>
+              <Field label="Aporte por mês (R$)">
+                <input
+                  className={inputCls}
+                  inputMode="decimal"
+                  placeholder="0"
+                  value={contribution}
+                  onChange={(e) => setContribution(e.target.value)}
+                />
+              </Field>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <SecondaryButton onClick={() => setEditing(false)} disabled={busy}>
+                Cancelar
+              </SecondaryButton>
+              <PrimaryButton type="submit" disabled={busy}>
+                Salvar
+              </PrimaryButton>
+            </div>
+          </form>
+        ) : (
+          <div className="grid grid-cols-2 gap-3">
+            <SecondaryButton onClick={() => setEditing(true)} disabled={busy}>
+              Editar meta
+            </SecondaryButton>
+            <SecondaryButton
+              disabled={busy}
+              onClick={() =>
+                run(() => api.updateGoal(goal.id, { status: done ? "ACTIVE" : "DONE" }))
+              }
+            >
+              {done ? "Reativar" : "Concluir meta"}
+            </SecondaryButton>
+            <div className="col-span-2">
+              <SecondaryButton
+                tone="danger"
+                disabled={busy}
+                onClick={() =>
+                  confirmDelete ? run(() => api.deleteGoal(goal.id)) : setConfirmDelete(true)
+                }
+              >
+                <IconTrash size={15} />
+                {confirmDelete ? "Toque de novo para excluir a meta" : "Excluir meta"}
+              </SecondaryButton>
+            </div>
+          </div>
+        )}
+        {error && (
+          <p className="text-xs text-neg" role="alert">
+            {error}
+          </p>
+        )}
       </div>
     </Sheet>
   );

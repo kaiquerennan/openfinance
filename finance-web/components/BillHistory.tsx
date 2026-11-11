@@ -23,7 +23,7 @@ export default function BillHistory({ card }: { card: CardBills }) {
   if (!card.bills.length && !card.open) return null;
 
   return (
-    <div className="mt-4">
+    <div>
       {card.open && (
         <div className="rounded-2xl bg-soft px-4 py-3">
           <div className="flex items-center justify-between">
@@ -47,7 +47,6 @@ export default function BillHistory({ card }: { card: CardBills }) {
 
       {card.bills.length > 0 && (
         <div className="mt-3">
-          <div className="text-sm font-semibold text-ink-dim mb-2">Faturas</div>
           <div className="divide-y divide-edge">
             {card.bills.map((b) => (
               <div key={b.id} className="flex items-center gap-3 py-2.5">

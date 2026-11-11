@@ -2,19 +2,17 @@
 
 // Chat "Visor BETA": pergunta livre pra IA (com contexto financeiro) +
 // sugestões rápidas + insights automáticos (regras) como mensagens iniciais.
+//
+// Só há controles que fazem alguma coisa: saíram o botão de anexar, o
+// microfone das sugestões e o "limpar" duplicado, que pareciam funções mas
+// não tinham nenhuma por trás.
 
 import { useEffect, useRef, useState } from "react";
 import { useInsights } from "@/lib/useInsights";
 import { api } from "@/lib/api";
-import {
-  IconChat,
-  IconMic,
-  IconPlus,
-  IconSend,
-  IconSparkle,
-  IconTrash,
-  IconX,
-} from "@/components/icons";
+import { polishTip } from "@/lib/categories";
+import { useSheetBehavior } from "@/components/Sheet";
+import { IconChat, IconSend, IconSparkle, IconX } from "@/components/icons";
 
 interface QA {
   question: string;
@@ -22,10 +20,10 @@ interface QA {
 }
 
 const SUGGESTIONS = [
-  { text: "Posso jantar fora esse mês?", icon: <IconMic size={14} /> },
-  { text: "Me ajude a planejar uma viagem", icon: <IconMic size={14} /> },
-  { text: "Me ajude a planejar uma compra grande", icon: <IconMic size={14} /> },
-  { text: "Quanto vou gastar em assinaturas esse ano?", icon: <IconChat size={14} /> },
+  "Posso jantar fora esse mês?",
+  "Onde dá para cortar sem sofrer?",
+  "Quanto vou gastar em assinaturas esse ano?",
+  "Me ajude a planejar uma compra grande",
 ];
 
 function greeting() {
@@ -49,16 +47,7 @@ export default function InsightsSheet({
   const [conversation, setConversation] = useState<QA[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
-    document.addEventListener("keydown", onKey);
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = "";
-    };
-  }, [open, onClose]);
+  useSheetBehavior(open, onClose);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
@@ -101,20 +90,14 @@ export default function InsightsSheet({
               </span>
             </div>
             <div className="flex items-center gap-1.5">
-              <button
-                aria-label="Nova conversa"
-                onClick={() => setConversation([])}
-                className="h-9 w-9 rounded-full grid place-items-center text-ink-dim bg-soft"
-              >
-                <IconChat size={16} />
-              </button>
-              <button
-                aria-label="Limpar conversa"
-                onClick={() => setConversation([])}
-                className="h-9 w-9 rounded-full grid place-items-center text-ink-dim bg-soft"
-              >
-                <IconTrash size={16} />
-              </button>
+              {!empty && (
+                <button
+                  onClick={() => setConversation([])}
+                  className="h-9 rounded-full px-3.5 text-sm font-semibold text-ink-dim bg-soft inline-flex items-center gap-1.5"
+                >
+                  <IconChat size={14} /> Nova conversa
+                </button>
+              )}
               <button
                 aria-label="Fechar"
                 onClick={onClose}
@@ -138,14 +121,13 @@ export default function InsightsSheet({
                 </p>
 
                 <div className="w-full space-y-2.5 mt-8">
-                  {SUGGESTIONS.map((s) => (
+                  {SUGGESTIONS.map((text) => (
                     <button
-                      key={s.text}
-                      onClick={() => ask(s.text)}
-                      className="w-full flex items-center gap-3 bg-soft rounded-full px-4 py-3 text-left text-sm font-medium text-ink"
+                      key={text}
+                      onClick={() => ask(text)}
+                      className="w-full bg-soft rounded-full px-5 py-3 text-left text-sm font-medium text-ink"
                     >
-                      <span className="text-ink-faint shrink-0">{s.icon}</span>
-                      {s.text}
+                      {text}
                     </button>
                   ))}
                 </div>
@@ -166,7 +148,7 @@ export default function InsightsSheet({
                           <span className="text-accent shrink-0 mt-0.5">
                             <IconSparkle size={14} />
                           </span>
-                          {t}
+                          {polishTip(t)}
                         </div>
                       ))}
                     </div>
@@ -203,16 +185,12 @@ export default function InsightsSheet({
 
           {/* Input */}
           <div className="shrink-0 px-4 pt-2 pb-4 border-t border-edge">
-            <div className="flex items-center gap-2 bg-soft rounded-3xl px-2 py-2">
-              <button
-                aria-label="Anexar"
-                className="h-9 w-9 rounded-full grid place-items-center text-ink-faint shrink-0"
-              >
-                <IconPlus size={16} />
-              </button>
+            <div className="flex items-center gap-2 bg-soft rounded-3xl pl-4 pr-2 py-2">
               <input
                 className="flex-1 bg-transparent outline-none text-sm text-ink placeholder:text-ink-faint"
-                placeholder="Digite a sua pergunta"
+                placeholder="Pergunte sobre o seu dinheiro"
+                aria-label="Pergunta para o Visor"
+                enterKeyHint="send"
                 value={question}
                 onChange={(e) => setQuestion(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && ask()}

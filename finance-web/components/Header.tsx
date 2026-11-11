@@ -1,88 +1,95 @@
 "use client";
 
-// Header escuro e plano: título à esquerda e ícones de ação (esconder
-// valores / novo lançamento) à direita. `children` é o conteúdo da página
-// logo abaixo (números grandes, gráficos etc — sem cartão/fundo próprio).
+// Cabeçalho de página: título à esquerda (com "voltar" nas telas que não
+// estão na barra inferior) e ações à direita. `children` é o conteúdo logo
+// abaixo — normalmente o número principal da tela (PageHero).
+//
+// O "+" de novo lançamento só aparece onde faz sentido (início e transações):
+// nas outras telas ele era um botão a mais sem relação com o que está na tela.
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { toggleHideValues, useHideValues } from "@/lib/privacy";
 import AddTxSheet from "@/components/AddTxSheet";
-import {
-  IconArrows,
-  IconBars,
-  IconCalendarDots,
-  IconCard,
-  IconChat,
-  IconEye,
-  IconEyeOff,
-  IconFlow,
-  IconHome,
-  IconPie,
-  IconPlus,
-  IconTrophy,
-  IconWallet,
-} from "@/components/icons";
+import { IconChevronLeft, IconEye, IconEyeOff, IconPlus } from "@/components/icons";
 
-export const MENU = [
-  { href: "/", label: "Visão geral", icon: <IconHome size={20} /> },
-  { href: "/categorias", label: "Categorias", icon: <IconPie size={20} /> },
-  { href: "/transacoes", label: "Transações", icon: <IconArrows size={20} /> },
-  {
-    href: "/transacoes?tab=recorrentes",
-    label: "Recorrências",
-    icon: <IconCalendarDots size={20} />,
-  },
-  { href: "/analises", label: "Fluxo de Caixa", icon: <IconFlow size={20} /> },
-  { href: "/projecao", label: "Projeção", icon: <IconBars size={20} /> },
-  { href: "/contas", label: "Contas", icon: <IconWallet size={20} /> },
-  { href: "/investimentos", label: "Investimentos", icon: <IconBars size={20} /> },
-  { href: "/cartoes", label: "Cartões", icon: <IconCard size={20} /> },
-  { href: "/parcelas", label: "Parcelas", icon: <IconCalendarDots size={20} /> },
-  { href: "/metas", label: "Metas", icon: <IconTrophy size={20} /> },
-  {
-    href: "mailto:kaiquerennan@gmail.com?subject=Suporte",
-    label: "Suporte",
-    icon: <IconChat size={20} />,
-  },
-];
+const iconBtn =
+  "h-10 w-10 rounded-full grid place-items-center bg-soft text-ink-dim shrink-0 active:scale-95 transition";
 
-export default function BlueHeader({
-  title,
-  children,
-  onAdd,
+/** Botão de ação do cabeçalho com rótulo ("Nova meta"), para não depender de adivinhar um ícone. */
+export function HeaderAction({
+  label,
+  onClick,
 }: {
-  title?: string;
-  children?: React.ReactNode;
-  /** Ação do "+" (padrão: novo lançamento manual). */
-  onAdd?: () => void;
+  label: string;
+  onClick: () => void;
 }) {
+  return (
+    <button
+      onClick={onClick}
+      className="h-10 rounded-full bg-accent text-white font-semibold text-sm pl-3 pr-4 inline-flex items-center gap-1.5 shrink-0 active:scale-95 transition"
+    >
+      <IconPlus size={15} />
+      {label}
+    </button>
+  );
+}
+
+export default function PageHeader({
+  title,
+  back = false,
+  addTx = false,
+  actions,
+  children,
+}: {
+  title: string;
+  /** Mostra "voltar" no celular (no desktop a barra lateral já está sempre visível). */
+  back?: boolean;
+  /** Mostra o "+" de novo lançamento manual. */
+  addTx?: boolean;
+  actions?: React.ReactNode;
+  children?: React.ReactNode;
+}) {
+  const router = useRouter();
   const [addOpen, setAddOpen] = useState(false);
   const hideValues = useHideValues();
 
   return (
     <header className="px-5 pt-5 pb-2 text-ink">
-      <div className="flex items-center justify-between">
-        {title && <h1 className="text-2xl font-semibold">{title}</h1>}
-        <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2.5">
+        {back && (
           <button
-            aria-label={hideValues ? "Mostrar valores" : "Esconder valores"}
-            onClick={toggleHideValues}
-            className="h-10 w-10 rounded-full grid place-items-center bg-soft text-ink-dim"
+            aria-label="Voltar"
+            onClick={() => (window.history.length > 1 ? router.back() : router.push("/"))}
+            className={`${iconBtn} lg:hidden -ml-1`}
           >
-            {hideValues ? <IconEyeOff size={17} /> : <IconEye size={17} />}
+            <IconChevronLeft size={17} />
           </button>
+        )}
+        <h1 className="text-2xl font-semibold flex-1 min-w-0 truncate">{title}</h1>
+        {actions}
+        {addTx && (
           <button
-            aria-label="Adicionar"
-            onClick={() => (onAdd ? onAdd() : setAddOpen(true))}
-            className="h-10 w-10 rounded-full grid place-items-center bg-soft text-ink-dim"
+            aria-label="Novo lançamento"
+            title="Novo lançamento"
+            onClick={() => setAddOpen(true)}
+            className={iconBtn}
           >
             <IconPlus size={17} />
           </button>
-        </div>
+        )}
+        <button
+          aria-label={hideValues ? "Mostrar valores" : "Esconder valores"}
+          title={hideValues ? "Mostrar valores" : "Esconder valores"}
+          onClick={toggleHideValues}
+          className={`${iconBtn} lg:hidden`}
+        >
+          {hideValues ? <IconEyeOff size={17} /> : <IconEye size={17} />}
+        </button>
       </div>
       {children}
 
-      <AddTxSheet open={addOpen} onClose={() => setAddOpen(false)} />
+      {addTx && <AddTxSheet open={addOpen} onClose={() => setAddOpen(false)} />}
     </header>
   );
 }

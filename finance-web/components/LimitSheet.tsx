@@ -3,23 +3,37 @@
 // Sheet para definir/editar limite mensal (geral ou por categoria).
 
 import { useState } from "react";
-import { api } from "@/lib/api";
+import { api, brl0, parseBRL } from "@/lib/api";
 import { bumpData } from "@/lib/bus";
 import { catMeta } from "@/lib/categories";
 import Sheet from "@/components/Sheet";
-import { Field, inputCls, PrimaryButton } from "@/components/ui";
+import {
+  Field,
+  FilterChip,
+  inputCls,
+  PrimaryButton,
+  SecondaryButton,
+} from "@/components/ui";
+
+export interface LimitSuggestion {
+  label: string;
+  value: number;
+}
 
 export default function LimitSheet({
   open,
   onClose,
   category = "_global",
   current,
+  suggestions = [],
 }: {
   open: boolean;
   onClose: () => void;
   /** "_global" para o limite geral do mês. */
   category?: string;
   current: number | null;
+  /** Valores prontos (ex.: sua média dos últimos meses) — um toque preenche. */
+  suggestions?: LimitSuggestion[];
 }) {
   const isGlobal = category === "_global";
   const title = isGlobal
@@ -34,6 +48,7 @@ export default function LimitSheet({
           category={category}
           current={current}
           isGlobal={isGlobal}
+          suggestions={suggestions}
           onClose={onClose}
         />
       )}
@@ -45,23 +60,20 @@ function LimitForm({
   category,
   current,
   isGlobal,
+  suggestions,
   onClose,
 }: {
   category: string;
   current: number | null;
   isGlobal: boolean;
+  suggestions: LimitSuggestion[];
   onClose: () => void;
 }) {
-  const [amount, setAmount] = useState(current ? String(current) : "");
+  const [amount, setAmount] = useState(current ? String(current).replace(".", ",") : "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function submit() {
-    const value = Number(amount.replace(",", "."));
-    if (Number.isNaN(value) || value < 0) {
-      setError("Informe um valor válido (0 remove o limite).");
-      return;
-    }
+  async function save(value: number) {
     setSaving(true);
     setError(null);
     try {
@@ -75,13 +87,29 @@ function LimitForm({
     }
   }
 
+  function submit() {
+    const value = parseBRL(amount);
+    if (Number.isNaN(value) || value <= 0) {
+      setError("Informe um valor maior que zero.");
+      return;
+    }
+    save(value);
+  }
+
+  const useful = suggestions.filter((s) => s.value > 0);
+
   return (
-    <div className="space-y-4">
+    <form
+      className="space-y-4"
+      onSubmit={(e) => {
+        e.preventDefault();
+        submit();
+      }}
+    >
       <p className="text-sm text-ink-dim">
         {isGlobal
           ? "Quanto você planeja gastar por mês, no total."
-          : "Quanto você planeja gastar por mês nesta categoria."}{" "}
-        Use 0 para remover o limite.
+          : "Quanto você planeja gastar por mês nesta categoria."}
       </p>
       <Field label="Valor (R$)">
         <input
@@ -93,10 +121,32 @@ function LimitForm({
           autoFocus
         />
       </Field>
-      {error && <p className="text-xs text-neg">{error}</p>}
-      <PrimaryButton onClick={submit} disabled={saving}>
+      {useful.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {useful.map((s) => (
+            <FilterChip
+              key={s.label}
+              active={parseBRL(amount) === s.value}
+              onClick={() => setAmount(String(s.value))}
+            >
+              {s.label} · {brl0(s.value)}
+            </FilterChip>
+          ))}
+        </div>
+      )}
+      {error && (
+        <p className="text-xs text-neg" role="alert">
+          {error}
+        </p>
+      )}
+      <PrimaryButton type="submit" disabled={saving}>
         {saving ? "Salvando…" : "Salvar limite"}
       </PrimaryButton>
-    </div>
+      {current !== null && current > 0 && (
+        <SecondaryButton onClick={() => save(0)} disabled={saving}>
+          Remover limite
+        </SecondaryButton>
+      )}
+    </form>
   );
 }

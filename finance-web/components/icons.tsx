@@ -109,25 +109,10 @@ export const IconChevronLeft = ({ size = 18 }: { size?: number }) => (
   </Svg>
 );
 
-export const IconUpDown = ({ size = 12 }: { size?: number }) => (
-  <Svg size={size}>
-    <path d="m7 9 5-5 5 5M7 15l5 5 5-5" strokeWidth="2.6" />
-  </Svg>
-);
-
 export const IconSearch = ({ size = 18 }: { size?: number }) => (
   <Svg size={size}>
     <circle cx="11" cy="11" r="6.5" />
     <path d="m20 20-3.8-3.8" />
-  </Svg>
-);
-
-export const IconSliders = ({ size = 18 }: { size?: number }) => (
-  <Svg size={size}>
-    <path d="M5 4v6M5 14v6M12 4v2M12 10v10M19 4v10M19 18v2" />
-    <circle cx="5" cy="12" r="2" />
-    <circle cx="12" cy="8" r="2" />
-    <circle cx="19" cy="16" r="2" />
   </Svg>
 );
 
@@ -229,13 +214,6 @@ export const IconEye = ({ size = 18 }: { size?: number }) => (
   </Svg>
 );
 
-export const IconMic = ({ size = 16 }: { size?: number }) => (
-  <Svg size={size}>
-    <rect x="9" y="2.5" width="6" height="11" rx="3" />
-    <path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7" />
-  </Svg>
-);
-
 export const IconSend = ({ size = 18 }: { size?: number }) => (
   <Svg size={size} filled>
     <path d="M12 19V6M6 11.5 12 5l6 6.5" stroke="currentColor" strokeWidth="2.4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
@@ -255,5 +233,37 @@ export const IconEyeOff = ({ size = 18 }: { size?: number }) => (
     <path d="M3 3l18 18" />
     <path d="M10.6 5.2A10.9 10.9 0 0 1 12 5c7 0 10.5 7 10.5 7a14 14 0 0 1-3.06 3.94M6.5 6.6C3.4 8.5 1.5 12 1.5 12s3.5 7 10.5 7c1.4 0 2.66-.28 3.78-.74" />
     <path d="M9.9 9.9a3 3 0 0 0 4.2 4.2" />
+  </Svg>
+);
+
+export const IconTrend = ({ size = 20 }: { size?: number }) => (
+  <Svg size={size}>
+    <path d="m3 17 6-6 4 4 8-8" strokeWidth="2.2" />
+    <path d="M15 7h6v6" strokeWidth="2.2" />
+  </Svg>
+);
+
+export const IconRepeat = ({ size = 20 }: { size?: number }) => (
+  <Svg size={size}>
+    <path d="m17 2 4 4-4 4" strokeWidth="2.1" />
+    <path d="M3 11v-1a4 4 0 0 1 4-4h14" strokeWidth="2.1" />
+    <path d="m7 22-4-4 4-4" strokeWidth="2.1" />
+    <path d="M21 13v1a4 4 0 0 1-4 4H3" strokeWidth="2.1" />
+  </Svg>
+);
+
+export const IconGrid = ({ size = 20 }: { size?: number }) => (
+  <Svg size={size} filled>
+    <rect x="3.5" y="3.5" width="7" height="7" rx="2.2" />
+    <rect x="13.5" y="3.5" width="7" height="7" rx="2.2" />
+    <rect x="3.5" y="13.5" width="7" height="7" rx="2.2" />
+    <rect x="13.5" y="13.5" width="7" height="7" rx="2.2" />
+  </Svg>
+);
+
+export const IconLogout = ({ size = 18 }: { size?: number }) => (
+  <Svg size={size}>
+    <path d="M9 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h3" />
+    <path d="m15 8 4 4-4 4M19 12H9" />
   </Svg>
 );

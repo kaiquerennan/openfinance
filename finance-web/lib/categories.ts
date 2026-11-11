@@ -211,11 +211,39 @@ export function catColor(category: string | null | undefined): string {
   return CAT_COLORS[key] ?? CHART_PALETTE[hashStr(key) % CHART_PALETTE.length];
 }
 
-/** Lista de categorias conhecidas para selects (chave + label + icon). */
-export function allCategories() {
-  const seen = new Set<string>();
-  return Object.entries(CATEGORIES)
-    .filter(([, m]) => (seen.has(m.label) ? false : (seen.add(m.label), true)))
-    .map(([key, m]) => ({ key, ...m }))
-    .sort((a, b) => a.label.localeCompare(b.label, 'pt-BR'));
+
+/** Chaves mais longas primeiro, para "food delivery" casar antes de "food". */
+const CATEGORY_KEYS_BY_LENGTH = Object.keys(CATEGORIES).sort((a, b) => b.length - a.length);
+const CATEGORY_NAME_RE = new RegExp(
+  `\\b(${CATEGORY_KEYS_BY_LENGTH.map((k) => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})\\b`,
+  'gi',
+);
+
+/**
+ * Deixa um texto da análise pronto para a tela: o backend escreve as dicas com
+ * a chave crua da categoria ("Sports goods") e decimal com ponto ("86.43%").
+ * Aqui viram o mesmo nome que o resto do app mostra e o formato brasileiro.
+ */
+export function polishTip(text: string) {
+  return text
+    .replace(CATEGORY_NAME_RE, (match) => CATEGORIES[match.toLowerCase()]?.label ?? match)
+    .replace(/(\d)\.(\d+)%/g, '$1,$2%')
+    .replace(/\b(\d{4})-(\d{2})\b(?!-)/g, (_, y, m) => `${MONTH_NAMES[Number(m) - 1] ?? m}/${y}`);
 }
+
+const MONTH_NAMES = [
+  'jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez',
+];
+
+/** Categorias oferecidas primeiro num lançamento manual (as do dia a dia). */
+export const QUICK_CATEGORIES = {
+  expense: [
+    'groceries',
+    'eating out',
+    'food delivery',
+    'taxi and ride-hailing',
+    'gas stations',
+    'pharmacy',
+  ],
+  income: ['salary', 'income', 'proceeds interests and dividends'],
+} as const;

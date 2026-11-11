@@ -13,7 +13,7 @@ import {
   monthLabel,
 } from "@/lib/api";
 import { useDataVersion } from "@/lib/bus";
-import BlueHeader from "@/components/Header";
+import PageHeader from "@/components/Header";
 import {
   Amount,
   Card,
@@ -22,6 +22,8 @@ import {
   ErrorCard,
   LoadingCard,
   Money,
+  PageHero,
+  ProgressBar,
 } from "@/components/ui";
 
 const HORIZON = 12;
@@ -30,12 +32,7 @@ const HORIZON = 12;
 function Progress({ paid, total }: { paid: number; total: number }) {
   return (
     <div className="mt-2.5">
-      <div className="h-1.5 rounded-full bg-soft overflow-hidden">
-        <div
-          className="h-full rounded-full bg-accent"
-          style={{ width: `${(paid / total) * 100}%` }}
-        />
-      </div>
+      <ProgressBar ratio={total > 0 ? paid / total : 0} size="sm" />
       <div className="text-xs text-ink-dim mt-1.5">
         {paid} de {total} parcelas pagas · faltam {total - paid}
       </div>
@@ -60,32 +57,33 @@ export default function ParcelasPage() {
 
   return (
     <div>
-      <BlueHeader title="Parcelas">
-        <div className="mt-4">
-          <div className="text-ink-dim text-[15px]">JÁ COMPROMETIDO</div>
-          <div className="text-4xl font-semibold mt-1">
-            <Amount>{brl0(data?.committedTotal ?? 0)}</Amount>
-          </div>
-          <div className="text-ink-faint mt-2 text-[15px]">
-            {data
+      <PageHeader title="Parcelas" back>
+        <PageHero
+          label="Já comprometido em parcelas"
+          value={<Amount>{brl0(data?.committedTotal ?? 0)}</Amount>}
+          hint={
+            data
               ? data.plans.length === 0
                 ? "Nenhuma compra parcelada em aberto"
-                : `${data.plans.length} compra(s) parcelada(s)${
-                    data.freeFrom ? ` · livre a partir de ${monthLabel(data.freeFrom)}` : ""
-                  }`
-              : "…"}
-          </div>
-        </div>
-      </BlueHeader>
+                : `${data.plans.length} ${
+                    data.plans.length === 1 ? "compra parcelada" : "compras parceladas"
+                  }${data.freeFrom ? ` · livre a partir de ${monthLabel(data.freeFrom).toLowerCase()}` : ""}`
+              : undefined
+          }
+        />
+      </PageHeader>
 
       <div className="px-4 mt-5 space-y-4">
         {error && <ErrorCard message={error} />}
         {!data ? (
-          <LoadingCard text="Remontando os parcelamentos…" />
+          !error && <LoadingCard text="Remontando os parcelamentos…" />
         ) : data.plans.length === 0 ? (
-          <EmptyState text="Nenhuma parcela em aberto nos cartões conectados." />
+          <EmptyState
+            icon="✅"
+            text="Nenhuma parcela em aberto nos cartões conectados — os próximos meses estão livres."
+          />
         ) : (
-          <div className="rise space-y-4">
+          <div className="rise space-y-4 lg:max-w-3xl">
             {data.nextMonth && data.nextMonth.amount > 0 && (
               <Card>
                 <div className="text-sm text-ink-dim">
@@ -115,12 +113,7 @@ export default function ParcelasPage() {
                     <span className="w-16 shrink-0 text-xs text-ink-dim">
                       {monthLabel(m.month).slice(0, 3)}/{m.month.slice(2, 4)}
                     </span>
-                    <div className="flex-1 h-2.5 rounded-full bg-soft overflow-hidden">
-                      <div
-                        className="h-full rounded-full bg-accent"
-                        style={{ width: `${(m.amount / pico) * 100}%` }}
-                      />
-                    </div>
+                    <ProgressBar ratio={m.amount / pico} className="flex-1" />
                     <span className="w-24 shrink-0 text-right text-xs font-semibold text-ink">
                       <Amount>{brl0(m.amount)}</Amount>
                     </span>

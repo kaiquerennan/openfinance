@@ -5,7 +5,7 @@
 // e Sidebar (desktop).
 
 import { useEffect, useState } from "react";
-import { api, AnalyticsReport } from "@/lib/api";
+import { api, AnalyticsReport, currentMonth } from "@/lib/api";
 
 export function useInsights(open: boolean) {
   const [report, setReport] = useState<AnalyticsReport | null>(null);
@@ -13,7 +13,9 @@ export function useInsights(open: boolean) {
 
   useEffect(() => {
     if (!open || report) return;
-    api.report().then(setReport).catch((e) => setError(e.message));
+    // Sem o mês, o backend devolve o último com dados — e parcelas futuras do
+    // cartão já lançadas fazem esse "último" ser um mês que nem começou.
+    api.report(currentMonth()).then(setReport).catch((e) => setError(e.message));
   }, [open, report]);
 
   const insights = report

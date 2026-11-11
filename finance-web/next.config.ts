@@ -6,6 +6,24 @@ const nextConfig: NextConfig = {
 
   // Proxeia a API NestJS pela mesma origem — o celular só precisa alcançar a
   // porta 3335; o Next repassa para o backend local.
+  // Links antigos: as abas de Transações viraram telas próprias.
+  async redirects() {
+    return [
+      {
+        source: "/transacoes",
+        has: [{ type: "query", key: "tab", value: "recorrentes" }],
+        destination: "/recorrentes",
+        permanent: false,
+      },
+      {
+        source: "/transacoes",
+        has: [{ type: "query", key: "tab", value: "visao" }],
+        destination: "/categorias",
+        permanent: false,
+      },
+    ];
+  },
+
   async rewrites() {
     const api = process.env.BACKEND_URL ?? "http://localhost:3334";
     return [{ source: "/api/backend/:path*", destination: `${api}/:path*` }];
