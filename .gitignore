@@ -1,0 +1,5 @@
+# Skills de IA instaladas com `npx skills`: o conteúdo (dezenas de MB de
+# imagens e vídeo) fica fora do repositório. skills-lock.json registra a
+# origem e `npx skills experimental_install` restaura.
+.agents/
+.claude/skills/

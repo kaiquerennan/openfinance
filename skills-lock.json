@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "revenue-centric-design": {
+      "source": "heliocosta-dev/revenue-centric-design",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "computedHash": "69cb51192242c370a57880f3ce83e18bfd4181c8aded88464be4ff5bfae1e881"
+    }
+  }
+}
